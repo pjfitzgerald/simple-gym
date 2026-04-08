@@ -1,1 +1,14 @@
-/* Placeholder — will be replaced with mobile-first styles */
+.app-header {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  padding: 16px 0 8px;
+  z-index: 10;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
