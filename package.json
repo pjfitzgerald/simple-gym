@@ -1,0 +1,8 @@
+{
+  "name": "simple-gym",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ]
+}

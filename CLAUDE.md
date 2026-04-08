@@ -30,10 +30,21 @@ Monorepo with `server/` and `client/` directories. Root `package.json` manages w
 # Dev mode (hot reload on both frontend and backend)
 docker-compose up
 
+# Local dev without Docker (requires npm install first)
+npm install
+node server/src/index.js                    # server on :3001
+cd client && npx vite --host 0.0.0.0        # client on :3000
+
 # Access
 # Frontend: http://localhost:3000
 # API: http://localhost:3001/api
 ```
+
+## Database
+
+Migrations run automatically on server startup. To add a new migration, create a numbered `.sql` file in `server/src/db/migrations/` (e.g., `002_add_foo.sql`). The migration runner tracks applied migrations in a `migrations` table and applies new ones in sort order.
+
+`better-sqlite3` is a native module — Docker containers install their own copies via named volumes to avoid architecture mismatches with the host.
 
 ## Architecture
 
