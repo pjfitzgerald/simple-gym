@@ -1,0 +1,146 @@
+.live-workout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.workout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  position: sticky;
+  top: 80px;
+  background: var(--bg);
+  z-index: 5;
+}
+
+.workout-timer {
+  display: flex;
+  flex-direction: column;
+}
+
+.timer-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.timer-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.btn-finish {
+  background: var(--danger);
+  color: white;
+  padding: 10px 20px;
+  font-weight: 600;
+}
+
+.btn-finish:hover {
+  background: var(--danger-hover);
+}
+
+/* Exercise groups */
+.exercise-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.group-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.group-muscle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+/* Sets table */
+.sets-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sets-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr 32px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.sets-header-row {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.sets-row.completed {
+  opacity: 0.6;
+}
+
+.set-col-num {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.sets-row input {
+  padding: 8px;
+  font-size: 16px;
+  text-align: center;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.sets-row.completed input {
+  background: var(--accent-bg);
+  border-color: transparent;
+}
+
+.set-col-check {
+  text-align: center;
+  font-size: 16px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.btn-add-set {
+  margin-top: 8px;
+  width: 100%;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 8px;
+}
+
+.btn-add-set:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

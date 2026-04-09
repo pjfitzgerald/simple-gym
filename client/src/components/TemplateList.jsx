@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import TemplateForm from './TemplateForm.jsx'
 import './TemplateList.css'
 
-export default function TemplateList() {
+export default function TemplateList({ onStartWorkout }) {
   const [templates, setTemplates] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -53,22 +53,31 @@ export default function TemplateList() {
         </button>
       </div>
 
+      <button className="btn-start-blank" onClick={() => onStartWorkout(null)}>
+        Start Blank Workout
+      </button>
+
       {templates.length === 0 && (
         <p className="empty-state">No templates yet. Create one to get started.</p>
       )}
 
       {templates.map(t => (
-        <div key={t.id} className="template-card" onClick={() => handleEdit(t)}>
-          <div className="template-info">
+        <div key={t.id} className="template-card">
+          <div className="template-info" onClick={() => handleEdit(t)}>
             <span className="template-name">{t.name}</span>
             <span className="template-meta">{t.exercise_count} exercise{t.exercise_count !== 1 ? 's' : ''}</span>
           </div>
-          <button
-            className="btn-ghost btn-danger"
-            onClick={e => { e.stopPropagation(); handleDelete(t) }}
-          >
-            Delete
-          </button>
+          <div className="template-actions">
+            <button className="btn-primary btn-small" onClick={() => onStartWorkout(t.id)}>
+              Start
+            </button>
+            <button
+              className="btn-ghost btn-danger"
+              onClick={() => handleDelete(t)}
+            >
+              Delete
+            </button>
+          </div>
         </div>
       ))}
     </div>
