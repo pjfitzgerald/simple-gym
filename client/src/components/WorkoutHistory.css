@@ -1,0 +1,116 @@
+.workout-history h2,
+.history-detail h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.history-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.history-card:hover {
+  border-color: var(--accent);
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.history-meta {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.history-arrow {
+  font-size: 20px;
+  color: var(--text-secondary);
+  font-weight: 300;
+}
+
+/* Detail view */
+.history-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-meta {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.detail-exercise {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.detail-exercise-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.detail-exercise-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.detail-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-set {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.set-num {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.set-data {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.detail-set.skipped {
+  opacity: 0.5;
+}
+
+.skipped-text {
+  color: var(--text-secondary);
+}
