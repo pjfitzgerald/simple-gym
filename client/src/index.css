@@ -72,3 +72,34 @@ input:focus, select:focus {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+.btn-ghost:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 14px;
+}

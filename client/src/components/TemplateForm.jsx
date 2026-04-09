@@ -24,7 +24,8 @@ export default function TemplateForm({ template, onDone, onCancel }) {
     }
   }, [])
 
-  async function handleSave() {
+  async function handleSave(e) {
+    e?.preventDefault()
     setError(null)
     if (!name.trim()) {
       setError('Template name is required')
@@ -96,7 +97,7 @@ export default function TemplateForm({ template, onDone, onCancel }) {
   })
 
   return (
-    <div className="template-form">
+    <form className="template-form" onSubmit={handleSave}>
       <div className="template-form-header">
         <h2>{template ? 'Edit Template' : 'New Template'}</h2>
       </div>
@@ -114,7 +115,7 @@ export default function TemplateForm({ template, onDone, onCancel }) {
       <div className="selected-exercises">
         <div className="section-header">
           <h3>Exercises ({selectedExercises.length})</h3>
-          <button className="btn-primary btn-small" onClick={() => setShowPicker(!showPicker)}>
+          <button type="button" className="btn-primary btn-small" onClick={() => setShowPicker(!showPicker)}>
             + Add
           </button>
         </div>
@@ -127,11 +128,13 @@ export default function TemplateForm({ template, onDone, onCancel }) {
           <div key={`${ex.exercise_id}-${i}`} className="selected-exercise">
             <div className="reorder-buttons">
               <button
+                type="button"
                 className="btn-icon"
                 onClick={() => moveExercise(i, -1)}
                 disabled={i === 0}
               >^</button>
               <button
+                type="button"
                 className="btn-icon"
                 onClick={() => moveExercise(i, 1)}
                 disabled={i === selectedExercises.length - 1}
@@ -142,12 +145,12 @@ export default function TemplateForm({ template, onDone, onCancel }) {
               <span className="exercise-group">{ex.muscle_group}</span>
             </div>
             <div className="sets-control">
-              <button className="btn-icon" onClick={() => updateSets(i, ex.default_sets - 1)}>-</button>
+              <button type="button" className="btn-icon" onClick={() => updateSets(i, ex.default_sets - 1)}>-</button>
               <span className="sets-count">{ex.default_sets}</span>
-              <button className="btn-icon" onClick={() => updateSets(i, ex.default_sets + 1)}>+</button>
+              <button type="button" className="btn-icon" onClick={() => updateSets(i, ex.default_sets + 1)}>+</button>
               <span className="sets-label">sets</span>
             </div>
-            <button className="btn-icon btn-remove" onClick={() => removeExercise(i)}>x</button>
+            <button type="button" className="btn-icon btn-remove" onClick={() => removeExercise(i)}>x</button>
           </div>
         ))}
       </div>
@@ -164,6 +167,7 @@ export default function TemplateForm({ template, onDone, onCancel }) {
           <div className="filter-tabs">
             {MUSCLE_GROUPS.map(group => (
               <button
+                type="button"
                 key={group}
                 className={`filter-tab ${filter === group ? 'active' : ''}`}
                 onClick={() => setFilter(group)}
@@ -177,6 +181,7 @@ export default function TemplateForm({ template, onDone, onCancel }) {
               const alreadyAdded = selectedExercises.some(s => s.exercise_id === ex.id)
               return (
                 <button
+                  type="button"
                   key={ex.id}
                   className={`picker-item ${alreadyAdded ? 'added' : ''}`}
                   onClick={() => addExercise(ex)}
@@ -192,11 +197,11 @@ export default function TemplateForm({ template, onDone, onCancel }) {
       )}
 
       <div className="template-form-actions">
-        <button className="btn-ghost" onClick={onCancel}>Cancel</button>
-        <button className="btn-primary" onClick={handleSave}>
+        <button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="btn-primary">
           {template ? 'Save' : 'Create'}
         </button>
       </div>
-    </div>
+    </form>
   )
 }
