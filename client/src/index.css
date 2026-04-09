@@ -44,7 +44,7 @@ body {
 #root {
   max-width: 600px;
   margin: 0 auto;
-  padding: 0 16px 24px;
+  padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
   min-height: 100dvh;
 }
 
