@@ -3,9 +3,11 @@ import './App.css'
 import ExerciseLibrary from './components/ExerciseLibrary.jsx'
 import TemplateList from './components/TemplateList.jsx'
 import LiveWorkout from './components/LiveWorkout.jsx'
+import WorkoutHistory from './components/WorkoutHistory.jsx'
 
 const TABS = [
   { id: 'templates', label: 'Templates' },
+  { id: 'history', label: 'History' },
   { id: 'exercises', label: 'Exercises' },
 ]
 
@@ -25,7 +27,7 @@ function App() {
 
   function handleWorkoutEnd() {
     setActiveSession(null)
-    setTab('templates')
+    setTab('history')
   }
 
   if (activeSession) {
@@ -56,6 +58,7 @@ function App() {
         </nav>
       </header>
       {tab === 'templates' && <TemplateList onStartWorkout={startWorkout} />}
+      {tab === 'history' && <WorkoutHistory />}
       {tab === 'exercises' && <ExerciseLibrary />}
     </div>
   )
