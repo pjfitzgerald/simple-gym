@@ -5,6 +5,7 @@ import cors from 'cors';
 import { initDb } from './db/database.js';
 import exercisesRouter from './routes/exercises.js';
 import templatesRouter from './routes/templates.js';
+import sessionsRouter from './routes/sessions.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -16,6 +17,7 @@ app.use(express.json());
 // API routes
 app.use('/api/exercises', exercisesRouter);
 app.use('/api/templates', templatesRouter);
+app.use('/api/sessions', sessionsRouter);
 
 // In production, serve the built frontend
 if (process.env.NODE_ENV === 'production') {
