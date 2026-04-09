@@ -125,6 +125,12 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
                   value={set.weight ?? ''}
                   onChange={e => handleSetChange(gi, si, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
                   onBlur={() => handleSetBlur(gi, si)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      e.target.nextElementSibling?.focus()
+                    }
+                  }}
                 />
                 <input
                   className="set-col-reps"
@@ -134,6 +140,13 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
                   value={set.reps ?? ''}
                   onChange={e => handleSetChange(gi, si, 'reps', e.target.value ? parseInt(e.target.value) : null)}
                   onBlur={() => handleSetBlur(gi, si)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleSetBlur(gi, si)
+                      e.target.blur()
+                    }
+                  }}
                 />
                 <span className="set-col-check">
                   {set.reps != null ? '✓' : ''}
