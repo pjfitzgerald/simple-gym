@@ -31,14 +31,7 @@ function App() {
   }
 
   if (activeSession) {
-    return (
-      <div>
-        <header className="app-header">
-          <h1>simple-gym</h1>
-        </header>
-        <LiveWorkout session={activeSession} onEnd={handleWorkoutEnd} />
-      </div>
-    )
+    return <LiveWorkout session={activeSession} onEnd={handleWorkoutEnd} />
   }
 
   return (

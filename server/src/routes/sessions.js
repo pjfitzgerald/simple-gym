@@ -116,6 +116,25 @@ router.post('/:id/sets', (req, res) => {
   res.status(201).json(set);
 });
 
+// DELETE /api/sessions/:id/sets/:setId — remove a set
+router.delete('/:id/sets/:setId', (req, res) => {
+  const db = getDb();
+  const set = db.prepare('SELECT * FROM session_sets WHERE id = ? AND session_id = ?').get(req.params.setId, req.params.id);
+  if (!set) return res.status(404).json({ error: 'Set not found' });
+
+  db.prepare('DELETE FROM session_sets WHERE id = ?').run(req.params.setId);
+
+  // Renumber remaining sets for this exercise in this session
+  const remaining = db.prepare(
+    'SELECT id FROM session_sets WHERE session_id = ? AND exercise_id = ? ORDER BY set_number'
+  ).all(req.params.id, set.exercise_id);
+
+  const updateNum = db.prepare('UPDATE session_sets SET set_number = ? WHERE id = ?');
+  remaining.forEach((row, i) => updateNum.run(i + 1, row.id));
+
+  res.status(204).end();
+});
+
 // PUT /api/sessions/:id/sets/:setId — update a logged set
 router.put('/:id/sets/:setId', (req, res) => {
   const db = getDb();
