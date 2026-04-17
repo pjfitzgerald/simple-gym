@@ -4,24 +4,30 @@
   gap: 20px;
 }
 
+/* Combined sticky header with title + timer */
 .workout-header {
+  padding-bottom: 12px;
+}
+
+.workout-header h1 {
+  margin: 0;
+}
+
+.workout-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  position: sticky;
-  top: 80px;
-  background: var(--bg);
-  z-index: 5;
 }
 
 .workout-timer {
   display: flex;
-  flex-direction: column;
+  gap: 10px;
+  align-items: baseline;
+  margin-top: 4px;
 }
 
 .timer-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text);
@@ -54,7 +60,7 @@
 .group-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   margin-bottom: 10px;
 }
 
@@ -71,6 +77,11 @@
   text-transform: capitalize;
 }
 
+.group-actions {
+  display: flex;
+  gap: 4px;
+}
+
 /* Sets table */
 .sets-table {
   display: flex;
@@ -80,7 +91,7 @@
 
 .sets-row {
   display: grid;
-  grid-template-columns: 40px 1fr 1fr 32px;
+  grid-template-columns: 40px 1fr 1fr 36px;
   gap: 8px;
   align-items: center;
   padding: 6px 0;
@@ -123,11 +134,32 @@
   border-color: transparent;
 }
 
-.set-col-check {
+.set-col-actions {
   text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.set-check {
   font-size: 16px;
   color: var(--accent);
   font-weight: 700;
+}
+
+.btn-delete-set {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.btn-delete-set:hover {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .btn-add-set {
@@ -143,4 +175,143 @@
 .btn-add-set:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Add exercise button */
+.btn-add-exercise {
+  width: 100%;
+  background: var(--accent-bg);
+  border: 1px dashed var(--accent);
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 12px;
+}
+
+.btn-add-exercise:hover {
+  background: var(--accent);
+  color: white;
+}
+
+/* Exercise picker (shared pattern with TemplateForm) */
+.exercise-picker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-tab {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  font-size: 13px;
+  text-transform: capitalize;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.filter-tab.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.picker-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  border-radius: 6px;
+}
+
+.picker-item:hover {
+  background: var(--accent-bg);
+}
+
+.picker-item .exercise-group {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+/* Reorder buttons */
+.btn-icon {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.btn-icon:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-icon:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Save as template prompt */
+.save-template-prompt {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.save-template-prompt h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.save-template-prompt .text-secondary {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+.save-template-prompt form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.save-template-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 32px 16px;
 }

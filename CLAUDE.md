@@ -56,6 +56,10 @@ Migrations run automatically on server startup. To add a new migration, create a
 - Docker volume mounts `./data` for SQLite persistence
 - Single Dockerfile is multi-stage: builds frontend, then serves everything from Express in production
 
+## Collaboration Notes
+
+Feature backlog and bug tracking is maintained in the Obsidian note at `~/pkm/01 projects/03 ideas/simple-gym.md`. Reference this note for current priorities and mark items done as they're completed.
+
 ## Design Constraints
 
 - Mobile-first UI — primarily used on iPhone at the gym, minimize taps
