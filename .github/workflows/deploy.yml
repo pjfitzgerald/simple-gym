@@ -1,0 +1,32 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Deploy to VPS
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_deploy deploy@100.72.181.37 bash << 'SCRIPT'
+          set -euo pipefail
+          cd /srv/simple-gym
+
+          echo "==> Pulling latest changes..."
+          git pull
+
+          echo "==> Building and restarting..."
+          docker compose -f docker-compose.prod.yml up --build -d
+
+          echo "==> Done!"
+          SCRIPT

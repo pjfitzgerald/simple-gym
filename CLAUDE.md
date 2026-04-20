@@ -56,9 +56,50 @@ Migrations run automatically on server startup. To add a new migration, create a
 - Docker volume mounts `./data` for SQLite persistence
 - Single Dockerfile is multi-stage: builds frontend, then serves everything from Express in production
 
-## Collaboration Notes
+## Long-term documentation hub
 
-Feature backlog and bug tracking is maintained in the Obsidian note at `~/pkm/01 projects/03 ideas/simple-gym.md`. Reference this note for current priorities and mark items done as they're completed.
+The Obsidian note at `~/pkm/projects/01 active/simple-gym/simple-gym.md` is the single source of truth for long-term project documentation and cross-session continuity. It holds outstanding tasks, backlog, progress log, decisions, and context that should survive past the current conversation.
+
+Prefer the `/session-resume` and `/session-end` skills to drive the rituals below — they encapsulate the steps. The rules here still apply whether you invoke via skill or do it inline.
+
+### Start of session (always)
+
+Read the hub note with the Read tool — the path is fixed. The `# Resume here` block at the top is designed so you can pick up without reading the rest; skim it first, then dive deeper only if the current request needs it. The `/session-resume` skill does this for you.
+
+### End of session (always, even if "nothing happened")
+
+**Update the `# Resume here` block** so a cold future session can pick up seamlessly (the `/session-end` skill does this for you). Overwrite — don't append — these fields:
+- **Last session (YYYY-MM-DD):** one sentence on what we did
+- **Current focus:** what's in progress, or "idle" if nothing is
+- **Next steps:** 1–3 concrete actions, ordered
+- **Blockers / open questions:** anything waiting on the user or unresolved
+
+**When to run this ritual** — whichever comes first:
+1. **User signals end-of-session**, explicitly ("wrap up", "end this session", "done for now") or implicitly ("thanks, that's all", "see you tomorrow").
+2. **A significant unit of work completes with no implied follow-up** — a natural stopping point where the user might walk away. Proactively run the ritual without being asked, so `Resume here` doesn't go stale if the session ends quietly.
+3. **User asks for a checkpoint** ("update resume", "checkpoint") — mid-session refresh of just the `Resume here` block.
+
+This ritual is non-negotiable — it's the whole reason the hub note exists. If you're not sure whether something is worth recording elsewhere, at minimum keep `Resume here` fresh.
+
+### During a session (as they come up)
+
+- Task completed → tick it off or move it out of `# Tasks`
+- New task emerges → add to `# Tasks` (or `# Backlog` if not near-term)
+- Meaningful decision (product, architectural, trade-off) → append to `# Decisions` with a date and the *why*
+- Notable change worth a breadcrumb for next session → append dated entry to `# Progress log`
+
+### Branching for digestibility
+
+The hub note should stay scannable. When a section grows beyond ~10 items, or a topic warrants deeper treatment (design doc, research, investigation), **branch it into a sub-note**:
+- Create `~/pkm/projects/01 active/simple-gym/simple-gym - <topic>.md`
+- Replace the section content (or its detail) in the hub with a one-line summary + `[[simple-gym - <topic>]]` link
+- Add the sub-note to the hub's `# Linked notes` section
+
+Prefer branching over letting the hub bloat.
+
+### What does NOT belong in the hub
+
+Anything derivable from the code or git history — file paths, function names, commit summaries, architecture already documented in this `CLAUDE.md`. Keep the hub focused on *why*, *what's next*, and *what we decided* — not *what the code currently does*.
 
 ## Design Constraints
 
