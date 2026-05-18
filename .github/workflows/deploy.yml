@@ -1,8 +1,10 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  # Manual-only. Auto-deploy now runs via local git hooks on the T480
+  # (.githooks/ + scripts/deploy.sh). This workflow is kept as an escape
+  # hatch for redeploying to the Vultr VPS on demand.
+  workflow_dispatch:
 
 jobs:
   deploy:
