@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#
+# Auto-deploy to local prod on commits to main only. Runs the build detached
+# so `git commit` returns immediately. Watch progress with:
+#   tail -f data/deploy.log
+#
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+[ "$branch" = "main" ] || exit 0
+
+repo="$(git rev-parse --show-toplevel)"
+mkdir -p "$repo/data"
+echo "post-commit -> deploying main to simple-gym prod (log: data/deploy.log)"
+nohup "$repo/scripts/deploy.sh" >> "$repo/data/deploy.log" 2>&1 &
