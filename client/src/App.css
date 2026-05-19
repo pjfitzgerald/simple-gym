@@ -35,3 +35,30 @@
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
+
+/* Resume in-progress workout prompt */
+.resume-prompt {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-top: 16px;
+}
+
+.resume-prompt h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: var(--text);
+}
+
+.resume-prompt .text-secondary {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+
+.resume-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
