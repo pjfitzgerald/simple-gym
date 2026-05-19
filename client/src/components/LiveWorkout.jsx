@@ -115,6 +115,13 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
     persistOrder(updated)
   }
 
+  // Drop an exercise from this session only — the template is untouched.
+  async function removeExercise(exerciseId) {
+    if (!confirm('Remove this exercise from this workout? Its logged sets will be lost.')) return
+    await fetch(`/api/sessions/${session.id}/exercises/${exerciseId}`, { method: 'DELETE' })
+    await refreshSets()
+  }
+
   async function handleFinish() {
     if (!confirm('End this workout?')) return
     clearInterval(timerRef.current)
@@ -228,6 +235,11 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
             <div className="group-actions">
               <button className="btn-icon" onClick={() => moveExercise(gi, -1)} disabled={gi === 0}>^</button>
               <button className="btn-icon" onClick={() => moveExercise(gi, 1)} disabled={gi === sets.length - 1}>v</button>
+              <button
+                className="btn-remove-exercise"
+                onClick={() => removeExercise(group.exercise_id)}
+                aria-label="Remove exercise"
+              >×</button>
             </div>
           </div>
 

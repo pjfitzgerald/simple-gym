@@ -278,6 +278,21 @@
   cursor: default;
 }
 
+.btn-remove-exercise {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.btn-remove-exercise:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
 /* Save as template prompt */
 .save-template-prompt {
   background: var(--surface);
