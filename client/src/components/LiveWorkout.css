@@ -256,7 +256,7 @@
   text-transform: capitalize;
 }
 
-/* Reorder buttons */
+/* Icon buttons */
 .btn-icon {
   background: transparent;
   border: 1px solid var(--border);
@@ -273,9 +273,27 @@
   border-color: var(--accent);
 }
 
-.btn-icon:disabled {
-  opacity: 0.3;
-  cursor: default;
+/* Drag handle for reordering exercises */
+.btn-drag-handle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 4px;
+  cursor: grab;
+  /* Stop the browser treating a handle drag as a scroll on touch. */
+  touch-action: none;
+}
+
+.btn-drag-handle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-drag-handle:active {
+  cursor: grabbing;
 }
 
 .btn-remove-exercise {
