@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
 #
-# Auto-deploy to local prod after a pull/merge into main only. Mirror of
-# post-commit -- covers the case where main is updated via `git pull`
-# (e.g. commits pushed from another machine) rather than a local commit.
+# Auto-deploy after a pull/merge, gated by branch. Mirror of post-commit --
+# covers the case where a branch is updated via `git pull` or `git merge`
+# rather than a local commit:
+#   main    -> scripts/deploy.sh          (prod,    :3001)
+#   staging -> scripts/deploy-staging.sh  (staging, :3002)
+# Any other branch does nothing. Deploys run detached. Watch progress with:
+#   tail -f data/deploy.log          (prod)
+#   tail -f data/deploy-staging.log  (staging)
 #
 branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
-[ "$branch" = "main" ] || exit 0
-
 repo="$(git rev-parse --show-toplevel)"
 mkdir -p "$repo/data"
-echo "post-merge -> deploying main to simple-gym prod (log: data/deploy.log)"
-nohup "$repo/scripts/deploy.sh" >> "$repo/data/deploy.log" 2>&1 &
+
+case "$branch" in
+  main)
+    echo "post-merge -> deploying main to simple-gym PROD (log: data/deploy.log)"
+    nohup "$repo/scripts/deploy.sh" >> "$repo/data/deploy.log" 2>&1 &
+    ;;
+  staging)
+    echo "post-merge -> deploying staging to simple-gym STAGING (log: data/deploy-staging.log)"
+    nohup "$repo/scripts/deploy-staging.sh" >> "$repo/data/deploy-staging.log" 2>&1 &
+    ;;
+esac

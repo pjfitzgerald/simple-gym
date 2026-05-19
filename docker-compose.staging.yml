@@ -1,0 +1,31 @@
+# Staging stack -- a full, isolated copy of prod on port 3002.
+#
+# Same Dockerfile as prod, but a separate compose project and a separate DB
+# volume, so a broken build or a bad migration here cannot touch the prod
+# container (:3001) or the prod DB volume (simple-gym_app_data).
+#
+# Deploy with scripts/deploy-staging.sh (also run automatically by the git
+# hooks in .githooks/ on commits/merges to the `staging` branch). Each deploy
+# refreshes the staging DB with a fresh snapshot of the live prod DB.
+name: simple-gym-staging
+
+services:
+  app:
+    build: .
+    ports:
+      - "3002:3001"
+    volumes:
+      - staging_data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_PATH=/app/data/simple-gym.db
+    restart: unless-stopped
+
+volumes:
+  # Pre-created and populated by scripts/deploy-staging.sh before `up`.
+  # external: compose neither creates nor removes it -- its lifecycle is
+  # owned by the deploy script, which refreshes it from the prod snapshot.
+  staging_data:
+    name: simple-gym-staging-data
+    external: true
