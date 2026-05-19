@@ -1,7 +1,119 @@
 import { useState, useEffect, useRef } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  MouseSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import './LiveWorkout.css'
 
 const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'core']
+
+// One exercise group, made draggable for reordering. Only the handle starts
+// a drag, so the inputs and the rest of the card stay normally interactive.
+function SortableExerciseGroup({ group, gi, onAddSet, onDeleteSet, onRemoveExercise, onSetChange, onSetBlur }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: group.exercise_id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : undefined,
+    zIndex: isDragging ? 2 : undefined,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="exercise-group">
+      <div className="group-header">
+        <div>
+          <h3>{group.exercise_name}</h3>
+          <span className="group-muscle">{group.muscle_group}</span>
+        </div>
+        <div className="group-actions">
+          <button
+            type="button"
+            className="btn-drag-handle"
+            aria-label="Drag to reorder exercise"
+            {...attributes}
+            {...listeners}
+          >⠿</button>
+          <button
+            type="button"
+            className="btn-remove-exercise"
+            onClick={() => onRemoveExercise(group.exercise_id)}
+            aria-label="Remove exercise"
+          >×</button>
+        </div>
+      </div>
+
+      <div className="sets-table">
+        <div className="sets-row sets-header-row">
+          <span className="set-col-num">Set</span>
+          <span className="set-col-weight">Weight</span>
+          <span className="set-col-reps">Reps</span>
+          <span className="set-col-actions"></span>
+        </div>
+
+        {group.sets.map((set, si) => (
+          <div key={set.id} className={`sets-row ${set.reps != null ? 'completed' : ''}`}>
+            <span className="set-col-num">{set.set_number}</span>
+            <input
+              className="set-col-weight"
+              type="number"
+              inputMode="decimal"
+              placeholder="lbs"
+              value={set.weight ?? ''}
+              onChange={e => onSetChange(gi, si, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
+              onBlur={() => onSetBlur(gi, si)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  e.target.nextElementSibling?.focus()
+                }
+              }}
+            />
+            <input
+              className="set-col-reps"
+              type="number"
+              inputMode="numeric"
+              placeholder="reps"
+              value={set.reps ?? ''}
+              onChange={e => onSetChange(gi, si, 'reps', e.target.value ? parseInt(e.target.value) : null)}
+              onBlur={() => onSetBlur(gi, si)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  onSetBlur(gi, si)
+                  e.target.blur()
+                }
+              }}
+            />
+            <span className="set-col-actions">
+              {set.reps != null
+                ? <span className="set-check">✓</span>
+                : <button className="btn-icon btn-delete-set" onClick={() => onDeleteSet(set.id)}>×</button>
+              }
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <button className="btn-add-set" onClick={() => onAddSet(group.exercise_id)}>
+        + Add Set
+      </button>
+    </div>
+  )
+}
 
 export default function LiveWorkout({ session: initialSession, onEnd }) {
   const [session] = useState(initialSession)
@@ -19,6 +131,14 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
   // Save-as-template state
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
+
+  // Touch needs a short press-hold so a scroll/tap isn't read as a drag;
+  // mouse uses a small movement threshold.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
@@ -106,13 +226,15 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
     }
   }
 
-  function moveExercise(groupIdx, direction) {
-    const target = groupIdx + direction
-    if (target < 0 || target >= sets.length) return
-    const updated = [...sets]
-    ;[updated[groupIdx], updated[target]] = [updated[target], updated[groupIdx]]
-    setSets(updated)
-    persistOrder(updated)
+  function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIdx = sets.findIndex(g => g.exercise_id === active.id)
+    const newIdx = sets.findIndex(g => g.exercise_id === over.id)
+    if (oldIdx === -1 || newIdx === -1) return
+    const reordered = arrayMove(sets, oldIdx, newIdx)
+    setSets(reordered)
+    persistOrder(reordered)
   }
 
   // Drop an exercise from this session only — the template is untouched.
@@ -225,81 +347,22 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
         </div>
       </header>
 
-      {sets.map((group, gi) => (
-        <div key={group.exercise_id} className="exercise-group">
-          <div className="group-header">
-            <div>
-              <h3>{group.exercise_name}</h3>
-              <span className="group-muscle">{group.muscle_group}</span>
-            </div>
-            <div className="group-actions">
-              <button className="btn-icon" onClick={() => moveExercise(gi, -1)} disabled={gi === 0}>^</button>
-              <button className="btn-icon" onClick={() => moveExercise(gi, 1)} disabled={gi === sets.length - 1}>v</button>
-              <button
-                className="btn-remove-exercise"
-                onClick={() => removeExercise(group.exercise_id)}
-                aria-label="Remove exercise"
-              >×</button>
-            </div>
-          </div>
-
-          <div className="sets-table">
-            <div className="sets-row sets-header-row">
-              <span className="set-col-num">Set</span>
-              <span className="set-col-weight">Weight</span>
-              <span className="set-col-reps">Reps</span>
-              <span className="set-col-actions"></span>
-            </div>
-
-            {group.sets.map((set, si) => (
-              <div key={set.id} className={`sets-row ${set.reps != null ? 'completed' : ''}`}>
-                <span className="set-col-num">{set.set_number}</span>
-                <input
-                  className="set-col-weight"
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="lbs"
-                  value={set.weight ?? ''}
-                  onChange={e => handleSetChange(gi, si, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
-                  onBlur={() => handleSetBlur(gi, si)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      e.target.nextElementSibling?.focus()
-                    }
-                  }}
-                />
-                <input
-                  className="set-col-reps"
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="reps"
-                  value={set.reps ?? ''}
-                  onChange={e => handleSetChange(gi, si, 'reps', e.target.value ? parseInt(e.target.value) : null)}
-                  onBlur={() => handleSetBlur(gi, si)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      handleSetBlur(gi, si)
-                      e.target.blur()
-                    }
-                  }}
-                />
-                <span className="set-col-actions">
-                  {set.reps != null
-                    ? <span className="set-check">✓</span>
-                    : <button className="btn-icon btn-delete-set" onClick={() => deleteSet(set.id)}>×</button>
-                  }
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <button className="btn-add-set" onClick={() => addSet(group.exercise_id)}>
-            + Add Set
-          </button>
-        </div>
-      ))}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={sets.map(g => g.exercise_id)} strategy={verticalListSortingStrategy}>
+          {sets.map((group, gi) => (
+            <SortableExerciseGroup
+              key={group.exercise_id}
+              group={group}
+              gi={gi}
+              onAddSet={addSet}
+              onDeleteSet={deleteSet}
+              onRemoveExercise={removeExercise}
+              onSetChange={handleSetChange}
+              onSetBlur={handleSetBlur}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
 
       <button className="btn-add-exercise" onClick={() => setShowPicker(!showPicker)}>
         + Add Exercise
