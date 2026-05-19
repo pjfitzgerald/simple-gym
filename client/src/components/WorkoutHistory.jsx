@@ -14,6 +14,13 @@ export default function WorkoutHistory() {
     setDetail(await res.json())
   }
 
+  async function deleteSession(id) {
+    if (!confirm('Delete this workout? This cannot be undone.')) return
+    await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
+    setSessions(prev => prev.filter(s => s.id !== id))
+    setDetail(null)
+  }
+
   function formatDuration(seconds) {
     if (!seconds) return '--'
     const h = Math.floor(seconds / 3600)
@@ -47,7 +54,10 @@ export default function WorkoutHistory() {
 
     return (
       <div className="history-detail">
-        <button className="btn-ghost" onClick={() => setDetail(null)}>Back</button>
+        <div className="detail-toolbar">
+          <button className="btn-ghost" onClick={() => setDetail(null)}>Back</button>
+          <button className="btn-danger" onClick={() => deleteSession(detail.id)}>Delete</button>
+        </div>
         <div className="detail-header">
           <h2>{detail.template_name || 'Blank Workout'}</h2>
           <span className="detail-meta">

@@ -94,6 +94,13 @@ input:focus, select:focus {
   color: var(--accent);
 }
 
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
 .btn-danger:hover {
   background: rgba(239, 68, 68, 0.1);
   color: var(--danger);
