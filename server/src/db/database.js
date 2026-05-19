@@ -51,11 +51,19 @@ function runMigrations() {
     db.prepare('SELECT name FROM migrations').all().map(r => r.name)
   );
 
+  // Apply a migration and record it atomically: if the SQL fails partway
+  // through, the whole migration rolls back rather than leaving a
+  // half-applied schema that would re-run (and likely error) on next start.
+  // SQLite has transactional DDL, so CREATE/ALTER statements are covered.
+  const applyMigration = db.transaction((file, sql) => {
+    db.exec(sql);
+    db.prepare('INSERT INTO migrations (name) VALUES (?)').run(file);
+  });
+
   for (const file of files) {
     if (applied.has(file)) continue;
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
-    db.exec(sql);
-    db.prepare('INSERT INTO migrations (name) VALUES (?)').run(file);
+    applyMigration(file, sql);
     console.log(`Migration applied: ${file}`);
   }
 }
