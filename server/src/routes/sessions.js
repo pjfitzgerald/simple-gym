@@ -3,6 +3,15 @@ import { getDb } from '../db/database.js';
 
 const router = Router();
 
+// Shared query: a session's sets in display order (exercise group order, then set number)
+const SETS_QUERY = `
+  SELECT ss.*, e.name as exercise_name, e.muscle_group
+  FROM session_sets ss
+  JOIN exercises e ON e.id = ss.exercise_id
+  WHERE ss.session_id = ?
+  ORDER BY ss.sort_order, ss.set_number
+`;
+
 // GET /api/sessions — list past sessions
 router.get('/', (_req, res) => {
   const db = getDb();
@@ -18,6 +27,25 @@ router.get('/', (_req, res) => {
   res.json(sessions);
 });
 
+// GET /api/sessions/active — the most recent in-progress session, or null.
+// Lets the app recover a workout after the PWA is closed or reloaded.
+// NOTE: must be declared before '/:id' so 'active' is not treated as an id.
+router.get('/active', (_req, res) => {
+  const db = getDb();
+  const session = db.prepare(`
+    SELECT s.*, t.name as template_name
+    FROM sessions s
+    LEFT JOIN templates t ON t.id = s.template_id
+    WHERE s.ended_at IS NULL
+    ORDER BY s.started_at DESC
+    LIMIT 1
+  `).get();
+  if (!session) return res.json(null);
+
+  session.sets = db.prepare(SETS_QUERY).all(session.id);
+  res.json(session);
+});
+
 // GET /api/sessions/:id — get session with all logged sets
 router.get('/:id', (req, res) => {
   const db = getDb();
@@ -29,15 +57,21 @@ router.get('/:id', (req, res) => {
   `).get(req.params.id);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
-  session.sets = db.prepare(`
-    SELECT ss.*, e.name as exercise_name, e.muscle_group
-    FROM session_sets ss
-    JOIN exercises e ON e.id = ss.exercise_id
-    WHERE ss.session_id = ?
-    ORDER BY ss.exercise_id, ss.set_number
-  `).all(req.params.id);
+  session.sets = db.prepare(SETS_QUERY).all(req.params.id);
 
   res.json(session);
+});
+
+// DELETE /api/sessions/:id — delete a session and all its logged sets
+router.delete('/:id', (req, res) => {
+  const db = getDb();
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  db.prepare('DELETE FROM session_sets WHERE session_id = ?').run(req.params.id);
+  db.prepare('DELETE FROM sessions WHERE id = ?').run(req.params.id);
+
+  res.status(204).end();
 });
 
 // POST /api/sessions — start a session
@@ -49,7 +83,8 @@ router.post('/', (req, res) => {
   const result = db.prepare('INSERT INTO sessions (template_id, started_at) VALUES (?, ?)').run(template_id ?? null, now);
   const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(result.lastInsertRowid);
 
-  // If starting from a template, pre-populate sets
+  // If starting from a template, pre-populate sets. These are independent
+  // copies — editing/removing them in the session never touches the template.
   if (template_id) {
     const templateExercises = db.prepare(`
       SELECT exercise_id, default_sets
@@ -58,25 +93,19 @@ router.post('/', (req, res) => {
       ORDER BY sort_order
     `).all(template_id);
 
-    const insertSet = db.prepare('INSERT INTO session_sets (session_id, exercise_id, set_number) VALUES (?, ?, ?)');
+    const insertSet = db.prepare('INSERT INTO session_sets (session_id, exercise_id, set_number, sort_order) VALUES (?, ?, ?, ?)');
     const insertAll = db.transaction((exercises) => {
-      for (const ex of exercises) {
+      exercises.forEach((ex, idx) => {
         for (let i = 1; i <= ex.default_sets; i++) {
-          insertSet.run(session.id, ex.exercise_id, i);
+          insertSet.run(session.id, ex.exercise_id, i, idx);
         }
-      }
+      });
     });
     insertAll(templateExercises);
   }
 
   // Return full session with sets
-  session.sets = db.prepare(`
-    SELECT ss.*, e.name as exercise_name, e.muscle_group
-    FROM session_sets ss
-    JOIN exercises e ON e.id = ss.exercise_id
-    WHERE ss.session_id = ?
-    ORDER BY ss.exercise_id, ss.set_number
-  `).all(session.id);
+  session.sets = db.prepare(SETS_QUERY).all(session.id);
 
   res.status(201).json(session);
 });
@@ -108,12 +137,61 @@ router.post('/:id/sets', (req, res) => {
     return res.status(400).json({ error: 'exercise_id and set_number are required' });
   }
 
+  // A new set inherits its exercise group's existing position; a brand-new
+  // exercise is appended after every current group.
+  const existing = db.prepare(
+    'SELECT sort_order FROM session_sets WHERE session_id = ? AND exercise_id = ? LIMIT 1'
+  ).get(req.params.id, exercise_id);
+  let sortOrder;
+  if (existing) {
+    sortOrder = existing.sort_order;
+  } else {
+    const max = db.prepare(
+      'SELECT MAX(sort_order) as m FROM session_sets WHERE session_id = ?'
+    ).get(req.params.id);
+    sortOrder = max.m == null ? 0 : max.m + 1;
+  }
+
   const result = db.prepare(
-    'INSERT INTO session_sets (session_id, exercise_id, set_number, weight, reps, completed_at) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(req.params.id, exercise_id, set_number, weight ?? null, reps ?? null, reps != null ? new Date().toISOString() : null);
+    'INSERT INTO session_sets (session_id, exercise_id, set_number, weight, reps, completed_at, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(req.params.id, exercise_id, set_number, weight ?? null, reps ?? null, reps != null ? new Date().toISOString() : null, sortOrder);
 
   const set = db.prepare('SELECT * FROM session_sets WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(set);
+});
+
+// PUT /api/sessions/:id/exercises/reorder — persist exercise group order
+router.put('/:id/exercises/reorder', (req, res) => {
+  const db = getDb();
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  const { order } = req.body;
+  if (!Array.isArray(order)) {
+    return res.status(400).json({ error: 'order must be an array of exercise ids' });
+  }
+
+  const update = db.prepare('UPDATE session_sets SET sort_order = ? WHERE session_id = ? AND exercise_id = ?');
+  const reorderAll = db.transaction((ids) => {
+    ids.forEach((exerciseId, idx) => update.run(idx, req.params.id, exerciseId));
+  });
+  reorderAll(order);
+
+  res.status(204).end();
+});
+
+// DELETE /api/sessions/:id/exercises/:exerciseId — drop an exercise from this
+// session only (e.g. skipping a template exercise today). The template is
+// never modified.
+router.delete('/:id/exercises/:exerciseId', (req, res) => {
+  const db = getDb();
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  db.prepare('DELETE FROM session_sets WHERE session_id = ? AND exercise_id = ?')
+    .run(req.params.id, req.params.exerciseId);
+
+  res.status(204).end();
 });
 
 // DELETE /api/sessions/:id/sets/:setId — remove a set
