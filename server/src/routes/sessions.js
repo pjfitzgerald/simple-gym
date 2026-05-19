@@ -62,6 +62,18 @@ router.get('/:id', (req, res) => {
   res.json(session);
 });
 
+// DELETE /api/sessions/:id — delete a session and all its logged sets
+router.delete('/:id', (req, res) => {
+  const db = getDb();
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  db.prepare('DELETE FROM session_sets WHERE session_id = ?').run(req.params.id);
+  db.prepare('DELETE FROM sessions WHERE id = ?').run(req.params.id);
+
+  res.status(204).end();
+});
+
 // POST /api/sessions — start a session
 router.post('/', (req, res) => {
   const db = getDb();
