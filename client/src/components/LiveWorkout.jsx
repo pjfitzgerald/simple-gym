@@ -4,7 +4,7 @@ import './LiveWorkout.css'
 const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'core']
 
 export default function LiveWorkout({ session: initialSession, onEnd }) {
-  const [session, setSession] = useState(initialSession)
+  const [session] = useState(initialSession)
   const [sets, setSets] = useState(groupSets(initialSession.sets || []))
   const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef(null)
@@ -92,12 +92,27 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
     setPickerSearch('')
   }
 
+  // Persist exercise group order so it survives refreshSets() and reloads.
+  // The body is the absolute order, so the latest call always wins.
+  async function persistOrder(orderedGroups) {
+    try {
+      await fetch(`/api/sessions/${session.id}/exercises/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: orderedGroups.map(g => g.exercise_id) }),
+      })
+    } catch {
+      // Offline: the local reorder still shows; it just won't survive a reload.
+    }
+  }
+
   function moveExercise(groupIdx, direction) {
     const target = groupIdx + direction
     if (target < 0 || target >= sets.length) return
     const updated = [...sets]
     ;[updated[groupIdx], updated[target]] = [updated[target], updated[groupIdx]]
     setSets(updated)
+    persistOrder(updated)
   }
 
   async function handleFinish() {
