@@ -1,13 +1,24 @@
 #!/usr/bin/env bash
 #
-# Auto-deploy to local prod on commits to main only. Runs the build detached
-# so `git commit` returns immediately. Watch progress with:
-#   tail -f data/deploy.log
+# Auto-deploy on commits, gated by branch:
+#   main    -> scripts/deploy.sh          (prod,    :3001)
+#   staging -> scripts/deploy-staging.sh  (staging, :3002)
+# Any other branch does nothing. Deploys run detached so `git commit` returns
+# immediately. Watch progress with:
+#   tail -f data/deploy.log          (prod)
+#   tail -f data/deploy-staging.log  (staging)
 #
 branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
-[ "$branch" = "main" ] || exit 0
-
 repo="$(git rev-parse --show-toplevel)"
 mkdir -p "$repo/data"
-echo "post-commit -> deploying main to simple-gym prod (log: data/deploy.log)"
-nohup "$repo/scripts/deploy.sh" >> "$repo/data/deploy.log" 2>&1 &
+
+case "$branch" in
+  main)
+    echo "post-commit -> deploying main to simple-gym PROD (log: data/deploy.log)"
+    nohup "$repo/scripts/deploy.sh" >> "$repo/data/deploy.log" 2>&1 &
+    ;;
+  staging)
+    echo "post-commit -> deploying staging to simple-gym STAGING (log: data/deploy-staging.log)"
+    nohup "$repo/scripts/deploy-staging.sh" >> "$repo/data/deploy-staging.log" 2>&1 &
+    ;;
+esac
