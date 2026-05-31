@@ -118,11 +118,37 @@ router.put('/:id/end', (req, res) => {
 
   const now = new Date().toISOString();
   const startedAt = new Date(session.started_at);
-  const duration = Math.round((new Date(now) - startedAt) / 1000);
+  // Subtract any paused gaps so a resumed session's duration is just the
+  // actual active time, not the wall-clock span.
+  const elapsed = Math.round((new Date(now) - startedAt) / 1000);
+  const duration = Math.max(0, elapsed - (session.paused_seconds || 0));
 
   db.prepare('UPDATE sessions SET ended_at = ?, duration_seconds = ? WHERE id = ?').run(now, duration, req.params.id);
 
   const updated = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  res.json(updated);
+});
+
+// POST /api/sessions/:id/resume — reopen an ended session.
+// The timer continues from where it stopped (the gap between end and resume
+// is accumulated into paused_seconds so it doesn't inflate the total).
+router.post('/:id/resume', (req, res) => {
+  const db = getDb();
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (!session.ended_at) return res.status(400).json({ error: 'Session is not ended' });
+
+  const active = db.prepare('SELECT id FROM sessions WHERE ended_at IS NULL').get();
+  if (active) return res.status(409).json({ error: 'Another session is already active' });
+
+  const gap = Math.max(0, Math.round((Date.now() - new Date(session.ended_at)) / 1000));
+  const newPaused = (session.paused_seconds || 0) + gap;
+
+  db.prepare('UPDATE sessions SET ended_at = NULL, duration_seconds = NULL, paused_seconds = ? WHERE id = ?')
+    .run(newPaused, req.params.id);
+
+  const updated = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  updated.sets = db.prepare(SETS_QUERY).all(req.params.id);
   res.json(updated);
 });
 
@@ -213,14 +239,19 @@ router.delete('/:id/sets/:setId', (req, res) => {
   res.status(204).end();
 });
 
-// PUT /api/sessions/:id/sets/:setId — update a logged set
+// PUT /api/sessions/:id/sets/:setId — update a logged set.
+// Completion is now an explicit, separately-controlled flag: pass `completed`
+// in the body to set/clear `completed_at`. Editing weight/reps no longer
+// auto-marks a set as done; that requires an explicit toggle from the client.
 router.put('/:id/sets/:setId', (req, res) => {
   const db = getDb();
   const set = db.prepare('SELECT * FROM session_sets WHERE id = ? AND session_id = ?').get(req.params.setId, req.params.id);
   if (!set) return res.status(404).json({ error: 'Set not found' });
 
-  const { weight, reps } = req.body;
-  const completedAt = reps != null ? (set.completed_at || new Date().toISOString()) : set.completed_at;
+  const { weight, reps, completed } = req.body;
+  let completedAt = set.completed_at;
+  if (completed === true) completedAt = set.completed_at || new Date().toISOString();
+  else if (completed === false) completedAt = null;
 
   db.prepare('UPDATE session_sets SET weight = ?, reps = ?, completed_at = ? WHERE id = ?')
     .run(weight ?? null, reps ?? null, completedAt, req.params.setId);

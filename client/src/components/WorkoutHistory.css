@@ -58,6 +58,11 @@
   align-items: center;
 }
 
+.detail-toolbar-right {
+  display: flex;
+  gap: 8px;
+}
+
 .detail-header {
   display: flex;
   flex-direction: column;

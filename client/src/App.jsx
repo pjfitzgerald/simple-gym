@@ -4,6 +4,7 @@ import ExerciseLibrary from './components/ExerciseLibrary.jsx'
 import TemplateList from './components/TemplateList.jsx'
 import LiveWorkout from './components/LiveWorkout.jsx'
 import WorkoutHistory from './components/WorkoutHistory.jsx'
+import MinimisedSessionBar from './components/MinimisedSessionBar.jsx'
 
 const TABS = [
   { id: 'templates', label: 'Templates' },
@@ -22,9 +23,19 @@ function formatStarted(iso) {
 function App() {
   const [tab, setTab] = useState('templates')
   const [activeSession, setActiveSession] = useState(null)
+  // When true, the active session is collapsed to a bottom bar so the rest
+  // of the app is browsable. Tapping the bar restores LiveWorkout.
+  const [minimised, setMinimised] = useState(false)
   // An unfinished session found on load — the PWA was closed mid-workout.
   const [resumable, setResumable] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // Push page content above the fixed bottom bar when it's shown.
+  useEffect(() => {
+    const show = !!activeSession && minimised
+    document.body.classList.toggle('has-minimised-session', show)
+    return () => document.body.classList.remove('has-minimised-session')
+  }, [activeSession, minimised])
 
   // On load, recover an in-progress workout so a closed PWA tab or an
   // expired cache can't silently lose a session.
@@ -48,7 +59,25 @@ function App() {
 
   function handleWorkoutEnd() {
     setActiveSession(null)
+    setMinimised(false)
     setTab('history')
+  }
+
+  function handleMinimise() {
+    setMinimised(true)
+  }
+
+  // Refresh the session from the server before restoring the full view so
+  // any sets logged before minimising (or that came in elsewhere) show up.
+  async function handleMaximise() {
+    try {
+      const res = await fetch(`/api/sessions/${activeSession.id}`)
+      if (res.ok) {
+        const fresh = await res.json()
+        setActiveSession(fresh)
+      }
+    } catch {}
+    setMinimised(false)
   }
 
   function resumeWorkout() {
@@ -62,8 +91,8 @@ function App() {
     setResumable(null)
   }
 
-  if (activeSession) {
-    return <LiveWorkout session={activeSession} onEnd={handleWorkoutEnd} />
+  if (activeSession && !minimised) {
+    return <LiveWorkout session={activeSession} onEnd={handleWorkoutEnd} onMinimise={handleMinimise} />
   }
 
   // Wait for the active-session check before rendering, so we don't flash
@@ -108,8 +137,11 @@ function App() {
         </nav>
       </header>
       {tab === 'templates' && <TemplateList onStartWorkout={startWorkout} />}
-      {tab === 'history' && <WorkoutHistory />}
+      {tab === 'history' && <WorkoutHistory onResume={setActiveSession} />}
       {tab === 'exercises' && <ExerciseLibrary />}
+      {activeSession && minimised && (
+        <MinimisedSessionBar session={activeSession} onMaximise={handleMaximise} />
+      )}
     </div>
   )
 }

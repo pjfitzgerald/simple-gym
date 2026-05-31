@@ -49,6 +49,29 @@
   background: var(--danger-hover);
 }
 
+.workout-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-minimise {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 6px;
+}
+
+.btn-minimise:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* Exercise groups */
 .exercise-group {
   background: var(--surface);
@@ -91,7 +114,7 @@
 
 .sets-row {
   display: grid;
-  grid-template-columns: 40px 1fr 1fr 36px;
+  grid-template-columns: 40px 1fr 1fr 64px;
   gap: 8px;
   align-items: center;
   padding: 6px 0;
@@ -108,8 +131,11 @@
   margin-bottom: 4px;
 }
 
-.sets-row.completed {
-  opacity: 0.6;
+.sets-row.completed input {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-secondary);
+  opacity: 0.55;
 }
 
 .set-col-num {
@@ -129,21 +155,34 @@
   background: var(--bg);
 }
 
-.sets-row.completed input {
-  background: var(--accent-bg);
-  border-color: transparent;
-}
-
 .set-col-actions {
-  text-align: center;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
 }
 
-.set-check {
-  font-size: 16px;
-  color: var(--accent);
+.btn-toggle-complete {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: white;
+  font-size: 15px;
   font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-toggle-complete.is-complete {
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .btn-delete-set {
