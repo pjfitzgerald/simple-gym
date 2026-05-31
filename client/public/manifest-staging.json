@@ -3,7 +3,7 @@
   "short_name": "gym-stg",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f9fafb",
+  "background_color": "#faf9f7",
   "theme_color": "#f97316",
   "icons": [
     {

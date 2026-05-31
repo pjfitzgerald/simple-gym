@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import WorkoutEdit from './WorkoutEdit.jsx'
 import './WorkoutHistory.css'
 
 export default function WorkoutHistory({ onResume }) {
   const [sessions, setSessions] = useState([])
   const [detail, setDetail] = useState(null)
+  const [editing, setEditing] = useState(false)
 
   useEffect(() => {
     fetch('/api/sessions').then(r => r.json()).then(setSessions)
@@ -19,6 +21,18 @@ export default function WorkoutHistory({ onResume }) {
     await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
     setSessions(prev => prev.filter(s => s.id !== id))
     setDetail(null)
+  }
+
+  // After editing, refresh both the list and the detail so any time/duration
+  // or set changes show up immediately.
+  async function closeEdit() {
+    setEditing(false)
+    const [listRes, detailRes] = await Promise.all([
+      fetch('/api/sessions'),
+      fetch(`/api/sessions/${detail.id}`),
+    ])
+    setSessions(await listRes.json())
+    setDetail(await detailRes.json())
   }
 
   async function resumeSession(id) {
@@ -51,6 +65,10 @@ export default function WorkoutHistory({ onResume }) {
     return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   }
 
+  if (editing && detail) {
+    return <WorkoutEdit session={detail} onClose={closeEdit} />
+  }
+
   if (detail) {
     const grouped = {}
     for (const set of detail.sets) {
@@ -70,7 +88,10 @@ export default function WorkoutHistory({ onResume }) {
           <button className="btn-ghost" onClick={() => setDetail(null)}>Back</button>
           <div className="detail-toolbar-right">
             {detail.ended_at && (
-              <button className="btn-ghost" onClick={() => resumeSession(detail.id)}>Resume</button>
+              <>
+                <button className="btn-ghost" onClick={() => setEditing(true)}>Edit</button>
+                <button className="btn-ghost" onClick={() => resumeSession(detail.id)}>Resume</button>
+              </>
             )}
             <button className="btn-danger" onClick={() => deleteSession(detail.id)}>Delete</button>
           </div>

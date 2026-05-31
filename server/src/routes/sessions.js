@@ -62,6 +62,41 @@ router.get('/:id', (req, res) => {
   res.json(session);
 });
 
+// PATCH /api/sessions/:id — edit an ended session's metadata.
+// Today only started_at / ended_at are editable; duration_seconds is
+// recomputed from them (minus any paused gaps) so it stays consistent.
+router.patch('/:id', (req, res) => {
+  const db = getDb();
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  const { started_at, ended_at } = req.body;
+  const newStart = started_at ?? session.started_at;
+  const newEnd = ended_at === undefined ? session.ended_at : ended_at;
+
+  if (newEnd && new Date(newEnd) < new Date(newStart)) {
+    return res.status(400).json({ error: 'ended_at must be on or after started_at' });
+  }
+
+  let duration = session.duration_seconds;
+  if (newEnd) {
+    const elapsed = Math.round((new Date(newEnd) - new Date(newStart)) / 1000);
+    duration = Math.max(0, elapsed - (session.paused_seconds || 0));
+  }
+
+  db.prepare('UPDATE sessions SET started_at = ?, ended_at = ?, duration_seconds = ? WHERE id = ?')
+    .run(newStart, newEnd, duration, req.params.id);
+
+  const updated = db.prepare(`
+    SELECT s.*, t.name as template_name
+    FROM sessions s
+    LEFT JOIN templates t ON t.id = s.template_id
+    WHERE s.id = ?
+  `).get(req.params.id);
+  updated.sets = db.prepare(SETS_QUERY).all(req.params.id);
+  res.json(updated);
+});
+
 // DELETE /api/sessions/:id — delete a session and all its logged sets
 router.delete('/:id', (req, res) => {
   const db = getDb();
