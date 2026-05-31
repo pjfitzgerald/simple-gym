@@ -1,0 +1,70 @@
+.minimised-session-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* iOS home indicator safe-area */
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom)) 16px;
+  background: var(--surface);
+  border: none;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+  z-index: 50;
+}
+
+.msb-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  animation: msb-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes msb-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.85); }
+}
+
+.msb-label {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.msb-timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.msb-sets {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.msb-expand {
+  font-size: 14px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* Push page content above the bar so nothing is hidden. */
+body.has-minimised-session {
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}

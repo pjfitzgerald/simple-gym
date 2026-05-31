@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './WorkoutHistory.css'
 
-export default function WorkoutHistory() {
+export default function WorkoutHistory({ onResume }) {
   const [sessions, setSessions] = useState([])
   const [detail, setDetail] = useState(null)
 
@@ -19,6 +19,18 @@ export default function WorkoutHistory() {
     await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
     setSessions(prev => prev.filter(s => s.id !== id))
     setDetail(null)
+  }
+
+  async function resumeSession(id) {
+    if (!confirm('Resume this workout? The timer will continue from where it stopped.')) return
+    const res = await fetch(`/api/sessions/${id}/resume`, { method: 'POST' })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Could not resume this session.')
+      return
+    }
+    const fresh = await res.json()
+    onResume?.(fresh)
   }
 
   function formatDuration(seconds) {
@@ -56,7 +68,12 @@ export default function WorkoutHistory() {
       <div className="history-detail">
         <div className="detail-toolbar">
           <button className="btn-ghost" onClick={() => setDetail(null)}>Back</button>
-          <button className="btn-danger" onClick={() => deleteSession(detail.id)}>Delete</button>
+          <div className="detail-toolbar-right">
+            {detail.ended_at && (
+              <button className="btn-ghost" onClick={() => resumeSession(detail.id)}>Resume</button>
+            )}
+            <button className="btn-danger" onClick={() => deleteSession(detail.id)}>Delete</button>
+          </div>
         </div>
         <div className="detail-header">
           <h2>{detail.template_name || 'Blank Workout'}</h2>
@@ -76,7 +93,7 @@ export default function WorkoutHistory() {
                 <div key={set.id} className={`detail-set ${set.completed_at ? '' : 'skipped'}`}>
                   <span className="set-num">Set {set.set_number}</span>
                   {set.weight != null && set.reps != null ? (
-                    <span className="set-data">{set.weight} lbs x {set.reps}</span>
+                    <span className="set-data">{set.weight} kg x {set.reps}</span>
                   ) : (
                     <span className="set-data skipped-text">—</span>
                   )}

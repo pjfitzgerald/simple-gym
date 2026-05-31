@@ -22,7 +22,7 @@ const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'cor
 
 // One exercise group, made draggable for reordering. Only the handle starts
 // a drag, so the inputs and the rest of the card stay normally interactive.
-function SortableExerciseGroup({ group, gi, onAddSet, onDeleteSet, onRemoveExercise, onSetChange, onSetBlur }) {
+function SortableExerciseGroup({ group, gi, onAddSet, onDeleteSet, onRemoveExercise, onSetChange, onSetBlur, onToggleComplete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: group.exercise_id })
   const style = {
@@ -64,14 +64,16 @@ function SortableExerciseGroup({ group, gi, onAddSet, onDeleteSet, onRemoveExerc
           <span className="set-col-actions"></span>
         </div>
 
-        {group.sets.map((set, si) => (
-          <div key={set.id} className={`sets-row ${set.reps != null ? 'completed' : ''}`}>
+        {group.sets.map((set, si) => {
+          const isComplete = set.completed_at != null
+          return (
+          <div key={set.id} className={`sets-row ${isComplete ? 'completed' : ''}`}>
             <span className="set-col-num">{set.set_number}</span>
             <input
               className="set-col-weight"
               type="number"
               inputMode="decimal"
-              placeholder="lbs"
+              placeholder="kg"
               value={set.weight ?? ''}
               onChange={e => onSetChange(gi, si, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
               onBlur={() => onSetBlur(gi, si)}
@@ -99,13 +101,22 @@ function SortableExerciseGroup({ group, gi, onAddSet, onDeleteSet, onRemoveExerc
               }}
             />
             <span className="set-col-actions">
-              {set.reps != null
-                ? <span className="set-check">✓</span>
-                : <button className="btn-icon btn-delete-set" onClick={() => onDeleteSet(set.id)}>×</button>
-              }
+              {!isComplete && (
+                <button
+                  className="btn-icon btn-delete-set"
+                  onClick={() => onDeleteSet(set.id)}
+                  aria-label="Delete set"
+                >×</button>
+              )}
+              <button
+                className={`btn-toggle-complete ${isComplete ? 'is-complete' : ''}`}
+                onClick={() => onToggleComplete(gi, si)}
+                aria-label={isComplete ? 'Mark set incomplete' : 'Mark set complete'}
+              >{isComplete ? '✓' : ''}</button>
             </span>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <button className="btn-add-set" onClick={() => onAddSet(group.exercise_id)}>
@@ -115,12 +126,17 @@ function SortableExerciseGroup({ group, gi, onAddSet, onDeleteSet, onRemoveExerc
   )
 }
 
-export default function LiveWorkout({ session: initialSession, onEnd }) {
+export default function LiveWorkout({ session: initialSession, onEnd, onMinimise }) {
   const [session] = useState(initialSession)
   const [sets, setSets] = useState(groupSets(initialSession.sets || []))
   const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef(null)
-  const startTime = useRef(new Date(initialSession.started_at).getTime())
+  // Shift the timer base forward by accumulated paused time so a resumed
+  // session continues from where it stopped instead of jumping forward by
+  // the idle gap.
+  const startTime = useRef(
+    new Date(initialSession.started_at).getTime() + (initialSession.paused_seconds || 0) * 1000
+  )
 
   // Exercise picker state
   const [showPicker, setShowPicker] = useState(false)
@@ -176,11 +192,13 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
     setSets(groupSets(full.sets))
   }
 
-  async function updateSet(setId, weight, reps) {
+  async function updateSet(setId, weight, reps, completed) {
+    const body = { weight: weight ?? null, reps: reps ?? null }
+    if (completed !== undefined) body.completed = completed
     const res = await fetch(`/api/sessions/${session.id}/sets/${setId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weight: weight || null, reps: reps || null }),
+      body: JSON.stringify(body),
     })
     return res.json()
   }
@@ -282,9 +300,49 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
     })
   }
 
+  async function handleToggleComplete(groupIdx, setIdx) {
+    const set = sets[groupIdx].sets[setIdx]
+    const next = set.completed_at == null
+    const nowIso = next ? new Date().toISOString() : null
+    setSets(prev => {
+      const updated = [...prev]
+      const g = { ...updated[groupIdx], sets: [...updated[groupIdx].sets] }
+      g.sets[setIdx] = { ...g.sets[setIdx], completed_at: nowIso }
+      updated[groupIdx] = g
+      return updated
+    })
+    await updateSet(set.id, set.weight, set.reps, next)
+  }
+
   async function handleSetBlur(groupIdx, setIdx) {
     const set = sets[groupIdx].sets[setIdx]
     await updateSet(set.id, set.weight, set.reps)
+
+    // Fill empty later sets with the first set's values (each field
+    // independently, never overwriting one the user has already filled).
+    if (setIdx !== 0) return
+    const group = sets[groupIdx]
+    const first = group.sets[0]
+    const toFill = []
+    for (let i = 1; i < group.sets.length; i++) {
+      const s = group.sets[i]
+      const newWeight = s.weight == null && first.weight != null ? first.weight : s.weight
+      const newReps = s.reps == null && first.reps != null ? first.reps : s.reps
+      if (newWeight !== s.weight || newReps !== s.reps) {
+        toFill.push({ idx: i, id: s.id, weight: newWeight, reps: newReps })
+      }
+    }
+    if (toFill.length === 0) return
+    setSets(prev => {
+      const updated = [...prev]
+      const g = { ...updated[groupIdx], sets: [...updated[groupIdx].sets] }
+      for (const f of toFill) {
+        g.sets[f.idx] = { ...g.sets[f.idx], weight: f.weight, reps: f.reps }
+      }
+      updated[groupIdx] = g
+      return updated
+    })
+    await Promise.all(toFill.map(f => updateSet(f.id, f.weight, f.reps)))
   }
 
   function formatTime(seconds) {
@@ -295,7 +353,7 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
     return `${m}:${String(s).padStart(2, '0')}`
   }
 
-  const completedSets = sets.reduce((acc, g) => acc + g.sets.filter(s => s.reps != null).length, 0)
+  const completedSets = sets.reduce((acc, g) => acc + g.sets.filter(s => s.completed_at != null).length, 0)
   const totalSets = sets.reduce((acc, g) => acc + g.sets.length, 0)
 
   const filteredExercises = allExercises.filter(ex => {
@@ -343,7 +401,16 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
               <span className="timer-label">{completedSets}/{totalSets} sets</span>
             </div>
           </div>
-          <button className="btn-finish" onClick={handleFinish}>Finish</button>
+          <div className="workout-header-actions">
+            {onMinimise && (
+              <button
+                className="btn-minimise"
+                onClick={onMinimise}
+                aria-label="Minimise workout"
+              >▾</button>
+            )}
+            <button className="btn-finish" onClick={handleFinish}>Finish</button>
+          </div>
         </div>
       </header>
 
@@ -359,6 +426,7 @@ export default function LiveWorkout({ session: initialSession, onEnd }) {
               onRemoveExercise={removeExercise}
               onSetChange={handleSetChange}
               onSetBlur={handleSetBlur}
+              onToggleComplete={handleToggleComplete}
             />
           ))}
         </SortableContext>
