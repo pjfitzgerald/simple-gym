@@ -1,0 +1,44 @@
+/* Workout edit: piggy-backs on LiveWorkout.css for the sets/exercises UI;
+   adds the time-edit panel and tweaks the header for edit mode. */
+
+.workout-edit .workout-timer {
+  margin-top: 4px;
+}
+
+.edit-times {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.edit-times-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.edit-times-row > span {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 48px;
+}
+
+.edit-times-row > input {
+  flex: 1;
+  max-width: 240px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.edit-times-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+}

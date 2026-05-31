@@ -72,12 +72,22 @@
   border-color: var(--accent);
 }
 
-/* Exercise groups */
+/* Exercise groups: the whole card is the drag target (long-press to reorder). */
 .exercise-group {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
+  cursor: grab;
+  /* Allow vertical scroll to start from anywhere on the card; @dnd-kit's
+     delay/tolerance handles distinguishing a held drag from a scroll. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.exercise-group.is-dragging {
+  cursor: grabbing;
 }
 
 .group-header {
@@ -198,7 +208,7 @@
 
 .btn-delete-set:hover {
   color: var(--danger);
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(185, 28, 28, 0.1);
 }
 
 .btn-add-set {
@@ -310,29 +320,6 @@
 .btn-icon:hover:not(:disabled) {
   color: var(--accent);
   border-color: var(--accent);
-}
-
-/* Drag handle for reordering exercises */
-.btn-drag-handle {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 4px 10px;
-  font-size: 16px;
-  line-height: 1;
-  border-radius: 4px;
-  cursor: grab;
-  /* Stop the browser treating a handle drag as a scroll on touch. */
-  touch-action: none;
-}
-
-.btn-drag-handle:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.btn-drag-handle:active {
-  cursor: grabbing;
 }
 
 .btn-remove-exercise {

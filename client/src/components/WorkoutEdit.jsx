@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -16,34 +16,55 @@ import {
 } from '@dnd-kit/sortable'
 import SortableExerciseGroup from './SortableExerciseGroup.jsx'
 import './LiveWorkout.css'
+import './WorkoutEdit.css'
 
 const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'core']
 
-export default function LiveWorkout({ session: initialSession, onEnd, onMinimise }) {
-  const [session] = useState(initialSession)
-  const [sets, setSets] = useState(groupSets(initialSession.sets || []))
-  const [elapsed, setElapsed] = useState(0)
-  const timerRef = useRef(null)
-  // Shift the timer base forward by accumulated paused time so a resumed
-  // session continues from where it stopped instead of jumping forward by
-  // the idle gap.
-  const startTime = useRef(
-    new Date(initialSession.started_at).getTime() + (initialSession.paused_seconds || 0) * 1000
-  )
+// Local timezone-aware <-> ISO conversion for <input type="datetime-local">.
+// The input gives/receives "YYYY-MM-DDTHH:mm" interpreted as local time.
+function isoToLocalInput(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
-  // Exercise picker state
+function localInputToIso(local) {
+  if (!local) return null
+  return new Date(local).toISOString()
+}
+
+function groupSets(flatSets) {
+  const groups = {}
+  const order = []
+  for (const s of flatSets) {
+    const key = s.exercise_id
+    if (!groups[key]) {
+      groups[key] = {
+        exercise_id: s.exercise_id,
+        exercise_name: s.exercise_name,
+        muscle_group: s.muscle_group,
+        sets: [],
+      }
+      order.push(key)
+    }
+    groups[key].sets.push(s)
+  }
+  return order.map(k => groups[k])
+}
+
+export default function WorkoutEdit({ session: initialSession, onClose }) {
+  const [session, setSession] = useState(initialSession)
+  const [sets, setSets] = useState(groupSets(initialSession.sets || []))
+  const [startedLocal, setStartedLocal] = useState(isoToLocalInput(initialSession.started_at))
+  const [endedLocal, setEndedLocal] = useState(isoToLocalInput(initialSession.ended_at))
+  const [timesError, setTimesError] = useState(null)
+
   const [showPicker, setShowPicker] = useState(false)
   const [allExercises, setAllExercises] = useState([])
   const [pickerFilter, setPickerFilter] = useState('all')
   const [pickerSearch, setPickerSearch] = useState('')
 
-  // Save-as-template state
-  const [showSaveTemplate, setShowSaveTemplate] = useState(false)
-  const [templateName, setTemplateName] = useState('')
-
-  // Long-press on the whole card starts a drag; quick taps fall through to
-  // the inputs/buttons inside it. Tolerance lets a scroll gesture move on
-  // without ever activating a drag.
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
@@ -51,50 +72,24 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   )
 
   useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTime.current) / 1000))
-    }, 1000)
-    return () => clearInterval(timerRef.current)
-  }, [])
-
-  useEffect(() => {
     fetch('/api/exercises').then(r => r.json()).then(setAllExercises)
   }, [])
-
-  function groupSets(flatSets) {
-    const groups = {}
-    const order = []
-    for (const s of flatSets) {
-      const key = s.exercise_id
-      if (!groups[key]) {
-        groups[key] = {
-          exercise_id: s.exercise_id,
-          exercise_name: s.exercise_name,
-          muscle_group: s.muscle_group,
-          sets: [],
-        }
-        order.push(key)
-      }
-      groups[key].sets.push(s)
-    }
-    return order.map(k => groups[k])
-  }
 
   async function refreshSets() {
     const res = await fetch(`/api/sessions/${session.id}`)
     const full = await res.json()
+    setSession(full)
     setSets(groupSets(full.sets))
   }
 
   async function updateSet(setId, weight, reps, completed) {
     const body = { weight: weight ?? null, reps: reps ?? null }
     if (completed !== undefined) body.completed = completed
-    const res = await fetch(`/api/sessions/${session.id}/sets/${setId}`, {
+    await fetch(`/api/sessions/${session.id}/sets/${setId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-    return res.json()
   }
 
   async function deleteSet(setId) {
@@ -124,8 +119,6 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     setPickerSearch('')
   }
 
-  // Persist exercise group order so it survives refreshSets() and reloads.
-  // The body is the absolute order, so the latest call always wins.
   async function persistOrder(orderedGroups) {
     try {
       await fetch(`/api/sessions/${session.id}/exercises/reorder`, {
@@ -133,9 +126,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: orderedGroups.map(g => g.exercise_id) }),
       })
-    } catch {
-      // Offline: the local reorder still shows; it just won't survive a reload.
-    }
+    } catch {}
   }
 
   function handleDragEnd(event) {
@@ -149,39 +140,10 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     persistOrder(reordered)
   }
 
-  // Drop an exercise from this session only — the template is untouched.
   async function removeExercise(exerciseId) {
     if (!confirm('Remove this exercise from this workout? Its logged sets will be lost.')) return
     await fetch(`/api/sessions/${session.id}/exercises/${exerciseId}`, { method: 'DELETE' })
     await refreshSets()
-  }
-
-  async function handleFinish() {
-    if (!confirm('End this workout?')) return
-    clearInterval(timerRef.current)
-    await fetch(`/api/sessions/${session.id}/end`, { method: 'PUT' })
-    // If session has exercises and no template, offer to save as template
-    if (sets.length > 0 && !session.template_id) {
-      setShowSaveTemplate(true)
-    } else {
-      onEnd()
-    }
-  }
-
-  async function handleSaveTemplate(e) {
-    e?.preventDefault()
-    if (!templateName.trim()) return
-    const exercises = sets.map((g, i) => ({
-      exercise_id: g.exercise_id,
-      default_sets: g.sets.length,
-      sort_order: i,
-    }))
-    await fetch('/api/templates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: templateName.trim(), exercises }),
-    })
-    onEnd()
   }
 
   function handleSetChange(groupIdx, setIdx, field, value) {
@@ -211,44 +173,42 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   async function handleSetBlur(groupIdx, setIdx) {
     const set = sets[groupIdx].sets[setIdx]
     await updateSet(set.id, set.weight, set.reps)
-
-    // Fill empty later sets with the first set's values (each field
-    // independently, never overwriting one the user has already filled).
-    if (setIdx !== 0) return
-    const group = sets[groupIdx]
-    const first = group.sets[0]
-    const toFill = []
-    for (let i = 1; i < group.sets.length; i++) {
-      const s = group.sets[i]
-      const newWeight = s.weight == null && first.weight != null ? first.weight : s.weight
-      const newReps = s.reps == null && first.reps != null ? first.reps : s.reps
-      if (newWeight !== s.weight || newReps !== s.reps) {
-        toFill.push({ idx: i, id: s.id, weight: newWeight, reps: newReps })
-      }
-    }
-    if (toFill.length === 0) return
-    setSets(prev => {
-      const updated = [...prev]
-      const g = { ...updated[groupIdx], sets: [...updated[groupIdx].sets] }
-      for (const f of toFill) {
-        g.sets[f.idx] = { ...g.sets[f.idx], weight: f.weight, reps: f.reps }
-      }
-      updated[groupIdx] = g
-      return updated
-    })
-    await Promise.all(toFill.map(f => updateSet(f.id, f.weight, f.reps)))
   }
 
-  function formatTime(seconds) {
+  async function saveTimes() {
+    setTimesError(null)
+    if (!startedLocal || !endedLocal) {
+      setTimesError('Both start and end times are required.')
+      return
+    }
+    const startIso = localInputToIso(startedLocal)
+    const endIso = localInputToIso(endedLocal)
+    if (new Date(endIso) < new Date(startIso)) {
+      setTimesError('End time must be after start time.')
+      return
+    }
+    const res = await fetch(`/api/sessions/${session.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ started_at: startIso, ended_at: endIso }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      setTimesError(err.error || 'Could not save times.')
+      return
+    }
+    const fresh = await res.json()
+    setSession(fresh)
+    setSets(groupSets(fresh.sets))
+  }
+
+  function formatDuration(seconds) {
+    if (seconds == null) return '—'
     const h = Math.floor(seconds / 3600)
     const m = Math.floor((seconds % 3600) / 60)
-    const s = seconds % 60
-    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-    return `${m}:${String(s).padStart(2, '0')}`
+    if (h > 0) return `${h}h ${m}m`
+    return `${m}m`
   }
-
-  const completedSets = sets.reduce((acc, g) => acc + g.sets.filter(s => s.completed_at != null).length, 0)
-  const totalSets = sets.reduce((acc, g) => acc + g.sets.length, 0)
 
   const filteredExercises = allExercises.filter(ex => {
     const matchesGroup = pickerFilter === 'all' || ex.muscle_group === pickerFilter
@@ -257,56 +217,43 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     return matchesGroup && matchesSearch && notAlreadyAdded
   })
 
-  if (showSaveTemplate) {
-    return (
-      <div className="live-workout">
-        <header className="app-header">
-          <h1>simple-gym</h1>
-        </header>
-        <div className="save-template-prompt">
-          <h2>Save as Template?</h2>
-          <p className="text-secondary">Save this workout as a reusable template for next time.</p>
-          <form onSubmit={handleSaveTemplate}>
-            <input
-              type="text"
-              placeholder="Template name (e.g. Push Day)"
-              value={templateName}
-              onChange={e => setTemplateName(e.target.value)}
-              autoFocus
-            />
-            <div className="save-template-actions">
-              <button type="button" className="btn-ghost" onClick={() => onEnd()}>Skip</button>
-              <button type="submit" className="btn-primary" disabled={!templateName.trim()}>Save Template</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="live-workout">
+    <div className="live-workout workout-edit">
       <header className="app-header workout-header">
         <div className="workout-header-row">
           <div>
             <h1>simple-gym</h1>
             <div className="workout-timer">
-              <span className="timer-value">{formatTime(elapsed)}</span>
-              <span className="timer-label">{completedSets}/{totalSets} sets</span>
+              <span className="timer-label">Editing — {formatDuration(session.duration_seconds)}</span>
             </div>
           </div>
           <div className="workout-header-actions">
-            {onMinimise && (
-              <button
-                className="btn-minimise"
-                onClick={onMinimise}
-                aria-label="Minimise workout"
-              >▾</button>
-            )}
-            <button className="btn-finish" onClick={handleFinish}>Finish</button>
+            <button className="btn-primary" onClick={onClose}>Done</button>
           </div>
         </div>
       </header>
+
+      <section className="edit-times">
+        <label className="edit-times-row">
+          <span>Start</span>
+          <input
+            type="datetime-local"
+            value={startedLocal}
+            onChange={e => setStartedLocal(e.target.value)}
+            onBlur={saveTimes}
+          />
+        </label>
+        <label className="edit-times-row">
+          <span>End</span>
+          <input
+            type="datetime-local"
+            value={endedLocal}
+            onChange={e => setEndedLocal(e.target.value)}
+            onBlur={saveTimes}
+          />
+        </label>
+        {timesError && <p className="edit-times-error">{timesError}</p>}
+      </section>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sets.map(g => g.exercise_id)} strategy={verticalListSortingStrategy}>
@@ -366,7 +313,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
       )}
 
       {sets.length === 0 && !showPicker && (
-        <p className="empty-state">Tap "+ Add Exercise" to get started.</p>
+        <p className="empty-state">No exercises in this workout. Tap "+ Add Exercise" to add one.</p>
       )}
     </div>
   )
