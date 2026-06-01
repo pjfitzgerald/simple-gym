@@ -45,6 +45,9 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   // Offered at the end of a workout started from a template: push the session's
   // exercise order / line-up / set counts back into that template.
   const [showUpdateTemplate, setShowUpdateTemplate] = useState(false)
+  // Pressing "End" opens a Save / Discard / Return choice rather than ending
+  // immediately, so an accidental tap doesn't save (or lose) a workout.
+  const [showEndPrompt, setShowEndPrompt] = useState(false)
 
   // Per-exercise personal records (heaviest weight + reps at it), from prior
   // sessions only — the benchmark shown grayed in each card while you train.
@@ -203,8 +206,10 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     }
   }
 
-  async function handleFinish() {
-    if (!confirm('End this workout?')) return
+  // "Save" in the End prompt: stop the timer, end the session, then run the
+  // template follow-up (save-as-new for ad-hoc, update for template-based).
+  async function saveAndEnd() {
+    setShowEndPrompt(false)
     clearInterval(timerRef.current)
     await fetch(`/api/sessions/${session.id}/end`, { method: 'PUT' })
     if (sets.length === 0) {
@@ -216,6 +221,14 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
       // Started from a template: offer to push the session's changes back.
       setShowUpdateTemplate(true)
     }
+  }
+
+  // "Discard workout" in the End prompt: delete the session and its sets, no save.
+  async function discardWorkout() {
+    setShowEndPrompt(false)
+    clearInterval(timerRef.current)
+    await fetch(`/api/sessions/${session.id}`, { method: 'DELETE' })
+    onEnd()
   }
 
   // Sync this template to match how the session actually went: exercise
@@ -413,7 +426,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
             </div>
           </div>
           <div className="workout-header-actions">
-            <button className="btn-finish" onClick={handleFinish}>Finish</button>
+            <button className="btn-finish" onClick={() => setShowEndPrompt(true)}>End</button>
           </div>
         </div>
       </header>
@@ -485,6 +498,19 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
           message={`Removed ${removal.pending.group.exercise_name}`}
           onUndo={removal.undo}
         />
+      )}
+
+      {showEndPrompt && (
+        <div className="end-prompt-backdrop" onClick={() => setShowEndPrompt(false)}>
+          <div className="end-prompt" onClick={e => e.stopPropagation()}>
+            <h2>End workout?</h2>
+            <div className="end-prompt-actions">
+              <button className="btn-primary" onClick={saveAndEnd} autoFocus>Save</button>
+              <button className="btn-danger" onClick={discardWorkout}>Discard workout</button>
+              <button className="btn-ghost" onClick={() => setShowEndPrompt(false)}>Return to workout</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -32,16 +32,17 @@ export default function SortableExerciseGroup({
     <div
       ref={setNodeRef}
       style={style}
-      className={`exercise-group-shell${isDragging ? ' is-dragging' : ''}`}
-      {...attributes}
-      {...listeners}
+      className={`exercise-group-shell exercise-group${isDragging ? ' is-dragging' : ''}`}
     >
+      {/* Only the header is the drag handle (long-press to reorder) and the
+          swipe-to-remove target. The sets list below is left free so a swipe
+          there deletes an individual set rather than the whole card. */}
       <Swipeable
-        className="exercise-group"
+        wrapperClassName="group-header-swipe"
         actionLabel="Remove"
         onDelete={() => onRemoveExercise(group.exercise_id)}
       >
-        <div className="group-header">
+        <div className="group-header" {...attributes} {...listeners}>
           <div>
             <h3>{group.exercise_name}</h3>
             <span className="group-muscle">{group.muscle_group}</span>
@@ -52,8 +53,9 @@ export default function SortableExerciseGroup({
             </span>
           )}
         </div>
+      </Swipeable>
 
-        <div className="sets-table">
+      <div className="sets-table">
           <div className="sets-row sets-header-row">
             <span className="set-col-num">Set</span>
             <span className="set-col-weight">Weight</span>
@@ -116,10 +118,9 @@ export default function SortableExerciseGroup({
           })}
         </div>
 
-        <button className="btn-add-set" onClick={() => onAddSet(group.exercise_id)}>
-          + Add Set
-        </button>
-      </Swipeable>
+      <button className="btn-add-set" onClick={() => onAddSet(group.exercise_id)}>
+        + Add Set
+      </button>
     </div>
   )
 }

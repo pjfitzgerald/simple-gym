@@ -34,22 +34,6 @@
   }
 }
 
-/* Staging gets a blue accent so it's instantly distinguishable from prod (orange).
-   The `staging` class is added to <html> by the inline script in index.html. */
-html.staging {
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-bg: rgba(37, 99, 235, 0.1);
-}
-
-@media (prefers-color-scheme: dark) {
-  html.staging {
-    --accent: #3b82f6;
-    --accent-hover: #2563eb;
-    --accent-bg: rgba(59, 130, 246, 0.15);
-  }
-}
-
 * {
   box-sizing: border-box;
 }
