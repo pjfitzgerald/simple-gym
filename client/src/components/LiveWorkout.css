@@ -148,6 +148,17 @@
   text-transform: capitalize;
 }
 
+/* Personal record hint — deliberately understated, sits to the right of the
+   exercise name. The same record also seeds the set inputs' placeholders. */
+.group-pr {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Sets table */
 .sets-table {
   display: flex;

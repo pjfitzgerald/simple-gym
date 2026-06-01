@@ -17,6 +17,32 @@ router.get('/', (req, res) => {
   res.json(rows);
 });
 
+// GET /api/exercises/prs — personal records per exercise, derived from logged
+// sets: the heaviest weight ever lifted, with the best reps achieved at that
+// weight. Returns a map keyed by exercise_id ({ weight, reps }). Pass
+// ?exclude_session= to compute from prior sessions only, so an in-progress
+// workout shows the record it's trying to beat rather than its own just-
+// entered numbers. Must precede '/:id' so 'prs' isn't treated as an id.
+router.get('/prs', (req, res) => {
+  const db = getDb();
+  const exclude = req.query.exclude_session ?? null;
+  const rows = db.prepare(`
+    SELECT exercise_id, weight, reps FROM (
+      SELECT exercise_id, weight, reps,
+             ROW_NUMBER() OVER (
+               PARTITION BY exercise_id ORDER BY weight DESC, reps DESC
+             ) AS rn
+      FROM session_sets
+      WHERE weight IS NOT NULL AND reps IS NOT NULL
+        AND weight > 0 AND reps > 0
+        AND (? IS NULL OR session_id != ?)
+    ) WHERE rn = 1
+  `).all(exclude, exclude);
+  const map = {};
+  for (const r of rows) map[r.exercise_id] = { weight: r.weight, reps: r.reps };
+  res.json(map);
+});
+
 // GET /api/exercises/:id
 router.get('/:id', (req, res) => {
   const db = getDb();
