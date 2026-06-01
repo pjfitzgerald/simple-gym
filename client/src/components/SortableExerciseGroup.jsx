@@ -1,11 +1,13 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import Swipeable from './Swipeable.jsx'
 
-// One exercise group, made draggable by long-pressing the whole card. The
-// inputs and buttons inside stay interactive because the TouchSensor only
-// activates a drag after a held delay — a tap/scroll completes first.
-// Used by both LiveWorkout and WorkoutEdit so the live and edit views look
-// and behave identically for sets management.
+// One exercise group. The shell is the @dnd-kit drag target (long-press the
+// card to reorder). Inside, a Swipeable lets you swipe the whole card left to
+// remove the exercise, and each set row is independently swipe-to-delete. The
+// inner row swipes stop propagation so a swipe that starts on a row deletes
+// that set rather than the whole card.
+// Used by both LiveWorkout and WorkoutEdit so the live and edit views match.
 export default function SortableExerciseGroup({
   group,
   gi,
@@ -29,91 +31,89 @@ export default function SortableExerciseGroup({
     <div
       ref={setNodeRef}
       style={style}
-      className={`exercise-group${isDragging ? ' is-dragging' : ''}`}
+      className={`exercise-group-shell${isDragging ? ' is-dragging' : ''}`}
       {...attributes}
       {...listeners}
     >
-      <div className="group-header">
-        <div>
-          <h3>{group.exercise_name}</h3>
-          <span className="group-muscle">{group.muscle_group}</span>
-        </div>
-        <div className="group-actions">
-          <button
-            type="button"
-            className="btn-remove-exercise"
-            onClick={() => onRemoveExercise(group.exercise_id)}
-            aria-label="Remove exercise"
-          >×</button>
-        </div>
-      </div>
-
-      <div className="sets-table">
-        <div className="sets-row sets-header-row">
-          <span className="set-col-num">Set</span>
-          <span className="set-col-weight">Weight</span>
-          <span className="set-col-reps">Reps</span>
-          <span className="set-col-actions"></span>
+      <Swipeable
+        className="exercise-group"
+        actionLabel="Remove"
+        onDelete={() => onRemoveExercise(group.exercise_id)}
+      >
+        <div className="group-header">
+          <div>
+            <h3>{group.exercise_name}</h3>
+            <span className="group-muscle">{group.muscle_group}</span>
+          </div>
         </div>
 
-        {group.sets.map((set, si) => {
-          const isComplete = set.completed_at != null
-          return (
-            <div key={set.id} className={`sets-row ${isComplete ? 'completed' : ''}`}>
-              <span className="set-col-num">{set.set_number}</span>
-              <input
-                className="set-col-weight"
-                type="number"
-                inputMode="decimal"
-                placeholder="kg"
-                value={set.weight ?? ''}
-                onChange={e => onSetChange(gi, si, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
-                onBlur={() => onSetBlur(gi, si)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    e.target.nextElementSibling?.focus()
-                  }
-                }}
-              />
-              <input
-                className="set-col-reps"
-                type="number"
-                inputMode="numeric"
-                placeholder="reps"
-                value={set.reps ?? ''}
-                onChange={e => onSetChange(gi, si, 'reps', e.target.value ? parseInt(e.target.value) : null)}
-                onBlur={() => onSetBlur(gi, si)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    onSetBlur(gi, si)
-                    e.target.blur()
-                  }
-                }}
-              />
-              <span className="set-col-actions">
-                {!isComplete && (
+        <div className="sets-table">
+          <div className="sets-row sets-header-row">
+            <span className="set-col-num">Set</span>
+            <span className="set-col-weight">Weight</span>
+            <span className="set-col-reps">Reps</span>
+            <span className="set-col-actions"></span>
+          </div>
+
+          {group.sets.map((set, si) => {
+            const isComplete = set.completed_at != null
+            return (
+              <Swipeable
+                key={set.id}
+                className={`sets-row ${isComplete ? 'completed' : ''}`}
+                wrapperClassName="swipeable-flush"
+                actionLabel="Delete"
+                stopPropagation
+                onDelete={() => onDeleteSet(set.id)}
+              >
+                <span className="set-col-num">{set.set_number}</span>
+                <input
+                  className="set-col-weight"
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="kg"
+                  value={set.weight ?? ''}
+                  onChange={e => onSetChange(gi, si, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
+                  onBlur={() => onSetBlur(gi, si)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      e.target.nextElementSibling?.focus()
+                    }
+                  }}
+                />
+                <input
+                  className="set-col-reps"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="reps"
+                  value={set.reps ?? ''}
+                  onChange={e => onSetChange(gi, si, 'reps', e.target.value ? parseInt(e.target.value) : null)}
+                  onBlur={() => onSetBlur(gi, si)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      onSetBlur(gi, si)
+                      e.target.blur()
+                    }
+                  }}
+                />
+                <span className="set-col-actions">
                   <button
-                    className="btn-icon btn-delete-set"
-                    onClick={() => onDeleteSet(set.id)}
-                    aria-label="Delete set"
-                  >×</button>
-                )}
-                <button
-                  className={`btn-toggle-complete ${isComplete ? 'is-complete' : ''}`}
-                  onClick={() => onToggleComplete(gi, si)}
-                  aria-label={isComplete ? 'Mark set incomplete' : 'Mark set complete'}
-                >{isComplete ? '✓' : ''}</button>
-              </span>
-            </div>
-          )
-        })}
-      </div>
+                    className={`btn-toggle-complete ${isComplete ? 'is-complete' : ''}`}
+                    onClick={() => onToggleComplete(gi, si)}
+                    aria-label={isComplete ? 'Mark set incomplete' : 'Mark set complete'}
+                  >{isComplete ? '✓' : ''}</button>
+                </span>
+              </Swipeable>
+            )
+          })}
+        </div>
 
-      <button className="btn-add-set" onClick={() => onAddSet(group.exercise_id)}>
-        + Add Set
-      </button>
+        <button className="btn-add-set" onClick={() => onAddSet(group.exercise_id)}>
+          + Add Set
+        </button>
+      </Swipeable>
     </div>
   )
 }

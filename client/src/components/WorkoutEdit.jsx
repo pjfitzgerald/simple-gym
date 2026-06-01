@@ -15,6 +15,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import SortableExerciseGroup from './SortableExerciseGroup.jsx'
+import UndoToast from './UndoToast.jsx'
+import { useUndoableRemoval } from '../hooks/useUndoableRemoval.js'
 import './LiveWorkout.css'
 import './WorkoutEdit.css'
 
@@ -70,6 +72,9 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
+
+  // Swipe-to-remove an exercise opens an undo window before committing.
+  const removal = useUndoableRemoval(session.id, sets, setSets)
 
   useEffect(() => {
     fetch('/api/exercises').then(r => r.json()).then(setAllExercises)
@@ -138,12 +143,6 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
     const reordered = arrayMove(sets, oldIdx, newIdx)
     setSets(reordered)
     persistOrder(reordered)
-  }
-
-  async function removeExercise(exerciseId) {
-    if (!confirm('Remove this exercise from this workout? Its logged sets will be lost.')) return
-    await fetch(`/api/sessions/${session.id}/exercises/${exerciseId}`, { method: 'DELETE' })
-    await refreshSets()
   }
 
   function handleSetChange(groupIdx, setIdx, field, value) {
@@ -264,7 +263,7 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
               gi={gi}
               onAddSet={addSet}
               onDeleteSet={deleteSet}
-              onRemoveExercise={removeExercise}
+              onRemoveExercise={removal.request}
               onSetChange={handleSetChange}
               onSetBlur={handleSetBlur}
               onToggleComplete={handleToggleComplete}
@@ -314,6 +313,13 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
 
       {sets.length === 0 && !showPicker && (
         <p className="empty-state">No exercises in this workout. Tap "+ Add Exercise" to add one.</p>
+      )}
+
+      {removal.pending && (
+        <UndoToast
+          message={`Removed ${removal.pending.group.exercise_name}`}
+          onUndo={removal.undo}
+        />
       )}
     </div>
   )

@@ -55,39 +55,65 @@
   gap: 8px;
 }
 
-.btn-minimise {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  font-size: 18px;
-  line-height: 1;
-  border-radius: 6px;
+/* The running session behaves like an iOS sheet: it rises into place on
+   mount and can be dragged down by the grabber to minimise. */
+.workout-sheet {
+  animation: sheet-rise 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.28s ease;
+  will-change: transform;
 }
 
-.btn-minimise:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+.workout-sheet.is-dragging {
+  transition: none;
 }
 
-/* Exercise groups: the whole card is the drag target (long-press to reorder). */
-.exercise-group {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
+@keyframes sheet-rise {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Grabber pill across the top of the sheet — drag it down to minimise. */
+.sheet-grabber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  margin: -8px 0 -16px;
+  touch-action: none;
   cursor: grab;
-  /* Allow vertical scroll to start from anywhere on the card; @dnd-kit's
-     delay/tolerance handles distinguishing a held drag from a scroll. */
+}
+
+.sheet-grabber:active {
+  cursor: grabbing;
+}
+
+.sheet-grabber-pill {
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+/* The shell is the drag target (long-press the card to reorder). It carries
+   the touch-action / user-select rules so @dnd-kit's delay+tolerance can tell
+   a held drag from a scroll, while the inner Swipeable owns horizontal swipes. */
+.exercise-group-shell {
+  position: relative;
+  cursor: grab;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
 }
 
-.exercise-group.is-dragging {
+.exercise-group-shell.is-dragging {
   cursor: grabbing;
+}
+
+.exercise-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
 }
 
 .group-header {
@@ -108,11 +134,6 @@
   font-size: 12px;
   color: var(--text-secondary);
   text-transform: capitalize;
-}
-
-.group-actions {
-  display: flex;
-  gap: 4px;
 }
 
 /* Sets table */
@@ -193,22 +214,6 @@
 .btn-toggle-complete.is-complete {
   background: var(--accent);
   border-color: var(--accent);
-}
-
-.btn-delete-set {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 18px;
-  padding: 2px 6px;
-  cursor: pointer;
-  border-radius: 4px;
-  line-height: 1;
-}
-
-.btn-delete-set:hover {
-  color: var(--danger);
-  background: rgba(185, 28, 28, 0.1);
 }
 
 .btn-add-set {
@@ -303,38 +308,6 @@
   font-size: 12px;
   color: var(--text-secondary);
   text-transform: capitalize;
-}
-
-/* Icon buttons */
-.btn-icon {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 4px 8px;
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 4px;
-  line-height: 1;
-}
-
-.btn-icon:hover:not(:disabled) {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.btn-remove-exercise {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 4px 8px;
-  font-size: 16px;
-  line-height: 1;
-  border-radius: 4px;
-}
-
-.btn-remove-exercise:hover {
-  color: var(--danger);
-  border-color: var(--danger);
 }
 
 /* Save as template prompt */

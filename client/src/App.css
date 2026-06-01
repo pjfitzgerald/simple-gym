@@ -2,7 +2,9 @@
   position: sticky;
   top: 0;
   background: var(--bg);
-  padding: 16px 0 0;
+  /* Bottom padding gives the tab content room to breathe below the nav
+     border instead of butting right up against it. */
+  padding: 16px 0 16px;
   z-index: 10;
 }
 
