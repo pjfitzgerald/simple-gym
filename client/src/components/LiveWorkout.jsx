@@ -292,7 +292,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
 
   if (showSaveTemplate) {
     return (
-      <div className="live-workout">
+      <div className="live-workout workout-sheet">
         <header className="app-header">
           <h1>simple-gym</h1>
         </header>

@@ -19,14 +19,20 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <script>
-      // Swap to orange-tinted icon + title on staging so the homescreen
-      // icon is visually distinct from prod. Runs before iOS reads the
-      // apple-touch-icon for "Add to Home Screen".
+      // Staging is themed blue (prod is orange) so the two are instantly
+      // distinguishable — homescreen icon, status bar, and in-app accent.
+      // Runs before iOS reads the apple-touch-icon for "Add to Home Screen".
       if (location.hostname.includes('staging')) {
+        document.documentElement.classList.add('staging');
         document.querySelector('link[rel="icon"]').href = '/favicon-staging.svg';
         document.querySelector('link[rel="apple-touch-icon"]').href = '/icons/icon-180-staging.png';
         document.querySelector('link[rel="manifest"]').href = '/manifest-staging.json';
         document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'gym-stg';
+        document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+        const tc = document.createElement('meta');
+        tc.name = 'theme-color';
+        tc.content = '#2563eb';
+        document.head.appendChild(tc);
         document.title = 'simple-gym (staging)';
       }
     </script>

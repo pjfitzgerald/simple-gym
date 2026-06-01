@@ -91,15 +91,11 @@ function App() {
     setResumable(null)
   }
 
-  if (activeSession && !minimised) {
-    return <LiveWorkout session={activeSession} onEnd={handleWorkoutEnd} onMinimise={handleMinimise} />
-  }
-
   // Wait for the active-session check before rendering, so we don't flash
   // the tabs and then jump to the resume prompt.
   if (loading) return null
 
-  if (resumable) {
+  if (resumable && !activeSession) {
     const setCount = resumable.sets.length
     return (
       <div>
@@ -141,6 +137,12 @@ function App() {
       {tab === 'exercises' && <ExerciseLibrary />}
       {activeSession && minimised && (
         <MinimisedSessionBar session={activeSession} onMaximise={handleMaximise} />
+      )}
+      {/* The running session is an overlay sheet on top of the tabs, not a
+          separate screen — so minimising just slides it down to reveal the
+          already-rendered tabs underneath instead of remounting them. */}
+      {activeSession && !minimised && (
+        <LiveWorkout session={activeSession} onEnd={handleWorkoutEnd} onMinimise={handleMinimise} />
       )}
     </div>
   )
