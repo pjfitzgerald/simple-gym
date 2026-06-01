@@ -15,6 +15,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import SortableExerciseGroup from './SortableExerciseGroup.jsx'
+import UndoToast from './UndoToast.jsx'
+import { useUndoableRemoval } from '../hooks/useUndoableRemoval.js'
 import './LiveWorkout.css'
 
 const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'core']
@@ -40,6 +42,16 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   // Save-as-template state
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
+
+  // Swipe-to-remove an exercise opens an undo window before committing.
+  const removal = useUndoableRemoval(session.id, sets, setSets)
+
+  // Drag-down-to-minimise (the grabber pill behaves like an iOS sheet handle).
+  const [dragY, setDragY] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const draggingRef = useRef(false)
+  const sheetStartY = useRef(0)
 
   // Long-press on the whole card starts a drag; quick taps fall through to
   // the inputs/buttons inside it. Tolerance lets a scroll gesture move on
@@ -149,11 +161,32 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     persistOrder(reordered)
   }
 
-  // Drop an exercise from this session only — the template is untouched.
-  async function removeExercise(exerciseId) {
-    if (!confirm('Remove this exercise from this workout? Its logged sets will be lost.')) return
-    await fetch(`/api/sessions/${session.id}/exercises/${exerciseId}`, { method: 'DELETE' })
-    await refreshSets()
+  // Grabber drag handlers: follow the finger down, and minimise if released
+  // past the threshold (otherwise spring back to the top).
+  function onGrabDown(e) {
+    if (!onMinimise) return
+    draggingRef.current = true
+    setDragging(true)
+    sheetStartY.current = e.clientY
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+  }
+
+  function onGrabMove(e) {
+    if (!draggingRef.current) return
+    setDragY(Math.max(0, e.clientY - sheetStartY.current))
+  }
+
+  function onGrabUp() {
+    if (!draggingRef.current) return
+    draggingRef.current = false
+    setDragging(false)
+    const threshold = Math.min(160, window.innerHeight * 0.25)
+    if (dragY > threshold) {
+      setClosing(true) // CSS transitions the sheet fully off-screen
+      setTimeout(() => onMinimise(), 300)
+    } else {
+      setDragY(0)
+    }
   }
 
   async function handleFinish() {
@@ -284,8 +317,37 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     )
   }
 
+  const sheetStyle = closing
+    ? { transform: 'translateY(100vh)' }
+    : dragging || dragY
+      ? { transform: `translateY(${dragY}px)` }
+      : undefined
+
   return (
-    <div className="live-workout">
+    <div
+      className={`live-workout workout-sheet${dragging ? ' is-dragging' : ''}${closing ? ' is-closing' : ''}`}
+      style={sheetStyle}
+    >
+      {onMinimise && (
+        <div
+          className="sheet-grabber"
+          role="button"
+          tabIndex={0}
+          aria-label="Drag down to minimise workout"
+          onPointerDown={onGrabDown}
+          onPointerMove={onGrabMove}
+          onPointerUp={onGrabUp}
+          onPointerCancel={onGrabUp}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onMinimise()
+            }
+          }}
+        >
+          <span className="sheet-grabber-pill" />
+        </div>
+      )}
       <header className="app-header workout-header">
         <div className="workout-header-row">
           <div>
@@ -296,13 +358,6 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
             </div>
           </div>
           <div className="workout-header-actions">
-            {onMinimise && (
-              <button
-                className="btn-minimise"
-                onClick={onMinimise}
-                aria-label="Minimise workout"
-              >▾</button>
-            )}
             <button className="btn-finish" onClick={handleFinish}>Finish</button>
           </div>
         </div>
@@ -317,7 +372,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
               gi={gi}
               onAddSet={addSet}
               onDeleteSet={deleteSet}
-              onRemoveExercise={removeExercise}
+              onRemoveExercise={removal.request}
               onSetChange={handleSetChange}
               onSetBlur={handleSetBlur}
               onToggleComplete={handleToggleComplete}
@@ -367,6 +422,13 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
 
       {sets.length === 0 && !showPicker && (
         <p className="empty-state">Tap "+ Add Exercise" to get started.</p>
+      )}
+
+      {removal.pending && (
+        <UndoToast
+          message={`Removed ${removal.pending.group.exercise_name}`}
+          onUndo={removal.undo}
+        />
       )}
     </div>
   )

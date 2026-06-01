@@ -1,0 +1,35 @@
+.swipeable {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+/* Set rows inside a card sit flush — no rounded corners. */
+.swipeable.swipeable-flush {
+  border-radius: 0;
+}
+
+.swipeable-action {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 20px;
+  background: var(--danger);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Foreground sits above the action layer and must be opaque so the red only
+   shows in the gap it leaves behind as it slides left. */
+.swipeable-content {
+  position: relative;
+}
+
+.swipeable-content.sets-row {
+  background: var(--surface);
+}
