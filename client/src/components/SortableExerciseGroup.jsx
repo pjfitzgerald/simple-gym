@@ -11,6 +11,7 @@ import Swipeable from './Swipeable.jsx'
 export default function SortableExerciseGroup({
   group,
   gi,
+  pr,
   onAddSet,
   onDeleteSet,
   onRemoveExercise,
@@ -45,6 +46,11 @@ export default function SortableExerciseGroup({
             <h3>{group.exercise_name}</h3>
             <span className="group-muscle">{group.muscle_group}</span>
           </div>
+          {pr && (
+            <span className="group-pr" title="Personal record">
+              PR {pr.weight} kg × {pr.reps}
+            </span>
+          )}
         </div>
 
         <div className="sets-table">
@@ -71,7 +77,7 @@ export default function SortableExerciseGroup({
                   className="set-col-weight"
                   type="number"
                   inputMode="decimal"
-                  placeholder="kg"
+                  placeholder={pr ? String(pr.weight) : 'kg'}
                   value={set.weight ?? ''}
                   onChange={e => onSetChange(gi, si, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
                   onBlur={() => onSetBlur(gi, si)}
@@ -86,7 +92,7 @@ export default function SortableExerciseGroup({
                   className="set-col-reps"
                   type="number"
                   inputMode="numeric"
-                  placeholder="reps"
+                  placeholder={pr ? String(pr.reps) : 'reps'}
                   value={set.reps ?? ''}
                   onChange={e => onSetChange(gi, si, 'reps', e.target.value ? parseInt(e.target.value) : null)}
                   onBlur={() => onSetBlur(gi, si)}

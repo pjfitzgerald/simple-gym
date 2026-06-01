@@ -42,6 +42,13 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   // Save-as-template state
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
+  // Offered at the end of a workout started from a template: push the session's
+  // exercise order / line-up / set counts back into that template.
+  const [showUpdateTemplate, setShowUpdateTemplate] = useState(false)
+
+  // Per-exercise personal records (heaviest weight + reps at it), from prior
+  // sessions only — the benchmark shown grayed in each card while you train.
+  const [prs, setPrs] = useState({})
 
   // Swipe-to-remove an exercise opens an undo window before committing.
   const removal = useUndoableRemoval(session.id, sets, setSets)
@@ -72,6 +79,13 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   useEffect(() => {
     fetch('/api/exercises').then(r => r.json()).then(setAllExercises)
   }, [])
+
+  useEffect(() => {
+    fetch(`/api/exercises/prs?exclude_session=${session.id}`)
+      .then(r => r.json())
+      .then(setPrs)
+      .catch(() => {})
+  }, [session.id])
 
   function groupSets(flatSets) {
     const groups = {}
@@ -193,12 +207,31 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     if (!confirm('End this workout?')) return
     clearInterval(timerRef.current)
     await fetch(`/api/sessions/${session.id}/end`, { method: 'PUT' })
-    // If session has exercises and no template, offer to save as template
-    if (sets.length > 0 && !session.template_id) {
+    if (sets.length === 0) {
+      onEnd()
+    } else if (!session.template_id) {
+      // Ad-hoc workout: offer to save it as a new template.
       setShowSaveTemplate(true)
     } else {
-      onEnd()
+      // Started from a template: offer to push the session's changes back.
+      setShowUpdateTemplate(true)
     }
+  }
+
+  // Sync this template to match how the session actually went: exercise
+  // line-up, order, and set counts (weights/reps are never stored on templates).
+  async function handleUpdateTemplate() {
+    const exercises = sets.map((g, i) => ({
+      exercise_id: g.exercise_id,
+      default_sets: g.sets.length,
+      sort_order: i,
+    }))
+    await fetch(`/api/templates/${session.template_id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exercises }),
+    })
+    onEnd()
   }
 
   async function handleSaveTemplate(e) {
@@ -290,6 +323,28 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     return matchesGroup && matchesSearch && notAlreadyAdded
   })
 
+  if (showUpdateTemplate) {
+    return (
+      <div className="live-workout workout-sheet">
+        <header className="app-header">
+          <h1>simple-gym</h1>
+        </header>
+        <div className="save-template-prompt">
+          <h2>Update template?</h2>
+          <p className="text-secondary">
+            Save this workout's exercise order, line-up and set counts back to
+            {session.template_name ? ` “${session.template_name}”` : ' the template'}.
+            Weights and reps aren't stored on templates.
+          </p>
+          <div className="save-template-actions">
+            <button type="button" className="btn-ghost" onClick={() => onEnd()}>Skip</button>
+            <button type="button" className="btn-primary" onClick={handleUpdateTemplate}>Update Template</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (showSaveTemplate) {
     return (
       <div className="live-workout workout-sheet">
@@ -370,6 +425,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
               key={group.exercise_id}
               group={group}
               gi={gi}
+              pr={prs[group.exercise_id]}
               onAddSet={addSet}
               onDeleteSet={deleteSet}
               onRemoveExercise={removal.request}
