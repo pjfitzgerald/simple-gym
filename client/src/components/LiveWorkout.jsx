@@ -23,7 +23,7 @@ const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'cor
 
 export default function LiveWorkout({ session: initialSession, onEnd, onMinimise }) {
   const [session] = useState(initialSession)
-  const [sets, setSets] = useState(groupSets(initialSession.sets || []))
+  const [sets, setSets] = useState(groupSets(initialSession.sets || [], initialSession.notes || {}))
   const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef(null)
   // Shift the timer base forward by accumulated paused time so a resumed
@@ -90,7 +90,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
       .catch(() => {})
   }, [session.id])
 
-  function groupSets(flatSets) {
+  function groupSets(flatSets, notes = {}) {
     const groups = {}
     const order = []
     for (const s of flatSets) {
@@ -100,6 +100,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
           exercise_id: s.exercise_id,
           exercise_name: s.exercise_name,
           muscle_group: s.muscle_group,
+          notes: notes[s.exercise_id] ?? '',
           sets: [],
         }
         order.push(key)
@@ -112,7 +113,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   async function refreshSets() {
     const res = await fetch(`/api/sessions/${session.id}`)
     const full = await res.json()
-    setSets(groupSets(full.sets))
+    setSets(groupSets(full.sets, full.notes))
   }
 
   async function updateSet(setId, weight, reps, completed) {
@@ -290,19 +291,18 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   async function handleSetBlur(groupIdx, setIdx) {
     const set = sets[groupIdx].sets[setIdx]
     await updateSet(set.id, set.weight, set.reps)
+  }
 
-    // Fill empty later sets with the first set's values (each field
-    // independently, never overwriting one the user has already filled).
-    if (setIdx !== 0) return
+  // Manual "fill down": copy this set's weight + reps into every set below it
+  // (overwriting their values). Replaces the old automatic first-set copy-down.
+  async function handleFillDown(groupIdx, setIdx) {
     const group = sets[groupIdx]
-    const first = group.sets[0]
+    const src = group.sets[setIdx]
     const toFill = []
-    for (let i = 1; i < group.sets.length; i++) {
+    for (let i = setIdx + 1; i < group.sets.length; i++) {
       const s = group.sets[i]
-      const newWeight = s.weight == null && first.weight != null ? first.weight : s.weight
-      const newReps = s.reps == null && first.reps != null ? first.reps : s.reps
-      if (newWeight !== s.weight || newReps !== s.reps) {
-        toFill.push({ idx: i, id: s.id, weight: newWeight, reps: newReps })
+      if (s.weight !== src.weight || s.reps !== src.reps) {
+        toFill.push({ idx: i, id: s.id, weight: src.weight, reps: src.reps })
       }
     }
     if (toFill.length === 0) return
@@ -316,6 +316,23 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
       return updated
     })
     await Promise.all(toFill.map(f => updateSet(f.id, f.weight, f.reps)))
+  }
+
+  function handleNotesChange(groupIdx, value) {
+    setSets(prev => {
+      const updated = [...prev]
+      updated[groupIdx] = { ...updated[groupIdx], notes: value }
+      return updated
+    })
+  }
+
+  async function handleNotesBlur(groupIdx) {
+    const group = sets[groupIdx]
+    await fetch(`/api/sessions/${session.id}/exercises/${group.exercise_id}/notes`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: group.notes ?? '' }),
+    })
   }
 
   function formatTime(seconds) {
@@ -445,6 +462,9 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
               onSetChange={handleSetChange}
               onSetBlur={handleSetBlur}
               onToggleComplete={handleToggleComplete}
+              onFillDown={handleFillDown}
+              onNotesChange={handleNotesChange}
+              onNotesBlur={handleNotesBlur}
             />
           ))}
         </SortableContext>
