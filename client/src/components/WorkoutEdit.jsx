@@ -36,7 +36,7 @@ function localInputToIso(local) {
   return new Date(local).toISOString()
 }
 
-function groupSets(flatSets) {
+function groupSets(flatSets, notes = {}) {
   const groups = {}
   const order = []
   for (const s of flatSets) {
@@ -46,6 +46,7 @@ function groupSets(flatSets) {
         exercise_id: s.exercise_id,
         exercise_name: s.exercise_name,
         muscle_group: s.muscle_group,
+        notes: notes[s.exercise_id] ?? '',
         sets: [],
       }
       order.push(key)
@@ -57,7 +58,7 @@ function groupSets(flatSets) {
 
 export default function WorkoutEdit({ session: initialSession, onClose }) {
   const [session, setSession] = useState(initialSession)
-  const [sets, setSets] = useState(groupSets(initialSession.sets || []))
+  const [sets, setSets] = useState(groupSets(initialSession.sets || [], initialSession.notes || {}))
   const [startedLocal, setStartedLocal] = useState(isoToLocalInput(initialSession.started_at))
   const [endedLocal, setEndedLocal] = useState(isoToLocalInput(initialSession.ended_at))
   const [timesError, setTimesError] = useState(null)
@@ -84,7 +85,7 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
     const res = await fetch(`/api/sessions/${session.id}`)
     const full = await res.json()
     setSession(full)
-    setSets(groupSets(full.sets))
+    setSets(groupSets(full.sets, full.notes))
   }
 
   async function updateSet(setId, weight, reps, completed) {
@@ -174,6 +175,47 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
     await updateSet(set.id, set.weight, set.reps)
   }
 
+  // Copy this set's weight + reps into every set below it in the same card.
+  async function handleFillDown(groupIdx, setIdx) {
+    const group = sets[groupIdx]
+    const src = group.sets[setIdx]
+    const toFill = []
+    for (let i = setIdx + 1; i < group.sets.length; i++) {
+      const s = group.sets[i]
+      if (s.weight !== src.weight || s.reps !== src.reps) {
+        toFill.push({ idx: i, id: s.id, weight: src.weight, reps: src.reps })
+      }
+    }
+    if (toFill.length === 0) return
+    setSets(prev => {
+      const updated = [...prev]
+      const g = { ...updated[groupIdx], sets: [...updated[groupIdx].sets] }
+      for (const f of toFill) {
+        g.sets[f.idx] = { ...g.sets[f.idx], weight: f.weight, reps: f.reps }
+      }
+      updated[groupIdx] = g
+      return updated
+    })
+    await Promise.all(toFill.map(f => updateSet(f.id, f.weight, f.reps)))
+  }
+
+  function handleNotesChange(groupIdx, value) {
+    setSets(prev => {
+      const updated = [...prev]
+      updated[groupIdx] = { ...updated[groupIdx], notes: value }
+      return updated
+    })
+  }
+
+  async function handleNotesBlur(groupIdx) {
+    const group = sets[groupIdx]
+    await fetch(`/api/sessions/${session.id}/exercises/${group.exercise_id}/notes`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: group.notes ?? '' }),
+    })
+  }
+
   async function saveTimes() {
     setTimesError(null)
     if (!startedLocal || !endedLocal) {
@@ -198,7 +240,7 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
     }
     const fresh = await res.json()
     setSession(fresh)
-    setSets(groupSets(fresh.sets))
+    setSets(groupSets(fresh.sets, fresh.notes))
   }
 
   function formatDuration(seconds) {
@@ -267,6 +309,9 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
               onSetChange={handleSetChange}
               onSetBlur={handleSetBlur}
               onToggleComplete={handleToggleComplete}
+              onFillDown={handleFillDown}
+              onNotesChange={handleNotesChange}
+              onNotesBlur={handleNotesBlur}
             />
           ))}
         </SortableContext>

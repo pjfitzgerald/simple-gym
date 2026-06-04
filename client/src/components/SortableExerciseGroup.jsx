@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import Swipeable from './Swipeable.jsx'
@@ -18,7 +19,12 @@ export default function SortableExerciseGroup({
   onSetChange,
   onSetBlur,
   onToggleComplete,
+  onFillDown,
+  onNotesChange,
+  onNotesBlur,
 }) {
+  // The notes textarea starts open if there's already a note to show.
+  const [showNotes, setShowNotes] = useState(!!group.notes)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: group.exercise_id })
   const style = {
@@ -54,6 +60,23 @@ export default function SortableExerciseGroup({
           )}
         </div>
       </Swipeable>
+
+      {/* Optional free-text note for this exercise card. The button just
+          reveals the textarea; the note persists on blur. */}
+      {showNotes ? (
+        <textarea
+          className="group-notes"
+          placeholder="Notes…"
+          value={group.notes ?? ''}
+          rows={2}
+          onChange={e => onNotesChange(gi, e.target.value)}
+          onBlur={() => onNotesBlur(gi)}
+        />
+      ) : (
+        <button className="btn-add-note" onClick={() => setShowNotes(true)}>
+          + Note
+        </button>
+      )}
 
       <div className="sets-table">
           <div className="sets-row sets-header-row">
@@ -107,6 +130,14 @@ export default function SortableExerciseGroup({
                   }}
                 />
                 <span className="set-col-actions">
+                  {si < group.sets.length - 1 && (set.weight != null || set.reps != null) && (
+                    <button
+                      className="btn-fill-down"
+                      onClick={() => onFillDown(gi, si)}
+                      aria-label="Copy this weight and reps to the sets below"
+                      title="Copy down to following sets"
+                    >↓</button>
+                  )}
                   <button
                     className={`btn-toggle-complete ${isComplete ? 'is-complete' : ''}`}
                     onClick={() => onToggleComplete(gi, si)}

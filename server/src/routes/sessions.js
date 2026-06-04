@@ -12,6 +12,17 @@ const SETS_QUERY = `
   ORDER BY ss.sort_order, ss.set_number
 `;
 
+// Per-exercise notes for a session as a { exercise_id: notes } map, so the
+// client can hang each note off its card without a second request.
+function notesMap(db, sessionId) {
+  const rows = db.prepare(
+    'SELECT exercise_id, notes FROM session_exercise_notes WHERE session_id = ?'
+  ).all(sessionId);
+  const map = {};
+  for (const r of rows) map[r.exercise_id] = r.notes;
+  return map;
+}
+
 // GET /api/sessions — list past sessions
 router.get('/', (_req, res) => {
   const db = getDb();
@@ -43,6 +54,7 @@ router.get('/active', (_req, res) => {
   if (!session) return res.json(null);
 
   session.sets = db.prepare(SETS_QUERY).all(session.id);
+  session.notes = notesMap(db, session.id);
   res.json(session);
 });
 
@@ -58,6 +70,7 @@ router.get('/:id', (req, res) => {
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   session.sets = db.prepare(SETS_QUERY).all(req.params.id);
+  session.notes = notesMap(db, req.params.id);
 
   res.json(session);
 });
@@ -94,6 +107,7 @@ router.patch('/:id', (req, res) => {
     WHERE s.id = ?
   `).get(req.params.id);
   updated.sets = db.prepare(SETS_QUERY).all(req.params.id);
+  updated.notes = notesMap(db, req.params.id);
   res.json(updated);
 });
 
@@ -141,6 +155,7 @@ router.post('/', (req, res) => {
 
   // Return full session with sets
   session.sets = db.prepare(SETS_QUERY).all(session.id);
+  session.notes = notesMap(db, session.id);
 
   res.status(201).json(session);
 });
@@ -184,6 +199,7 @@ router.post('/:id/resume', (req, res) => {
 
   const updated = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
   updated.sets = db.prepare(SETS_QUERY).all(req.params.id);
+  updated.notes = notesMap(db, req.params.id);
   res.json(updated);
 });
 
@@ -237,6 +253,23 @@ router.put('/:id/exercises/reorder', (req, res) => {
     ids.forEach((exerciseId, idx) => update.run(idx, req.params.id, exerciseId));
   });
   reorderAll(order);
+
+  res.status(204).end();
+});
+
+// PUT /api/sessions/:id/exercises/:exerciseId/notes — set (upsert) the note
+// for one exercise card in this session. An empty string clears it.
+router.put('/:id/exercises/:exerciseId/notes', (req, res) => {
+  const db = getDb();
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+
+  const notes = (req.body.notes ?? '').toString();
+  db.prepare(`
+    INSERT INTO session_exercise_notes (session_id, exercise_id, notes)
+    VALUES (?, ?, ?)
+    ON CONFLICT(session_id, exercise_id) DO UPDATE SET notes = excluded.notes
+  `).run(req.params.id, req.params.exerciseId, notes);
 
   res.status(204).end();
 });
