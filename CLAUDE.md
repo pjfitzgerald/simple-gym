@@ -56,6 +56,21 @@ Migrations run automatically on server startup. To add a new migration, create a
 - Docker volume mounts `./data` for SQLite persistence
 - Single Dockerfile is multi-stage: builds frontend, then serves everything from Express in production
 
+## Deployment & environments
+
+Prod and a parallel staging stack both run on the T480 (the always-on dev box), deployed by local git hooks — no CI. The flow is **feature work → `staging` → `main`**:
+
+| Branch    | Stack                        | Port  | DB volume        | HTTPS URL (Tailscale Serve)                |
+| --------- | ---------------------------- | ----- | ---------------- | ------------------------------------------ |
+| `main`    | `docker-compose.prod.yml`    | :3001 | prod volume      | `https://gym.astrapia-degree.ts.net`         |
+| `staging` | `docker-compose.staging.yml` | :3002 | separate volume  | `https://gym-staging.astrapia-degree.ts.net` |
+
+- **Auto-deploy hooks** (`.githooks/post-commit` + `post-merge`, gated by branch) run `scripts/deploy.sh` for `main` and `scripts/deploy-staging.sh` for `staging`. Any other branch does nothing. Deploys run detached; watch with `tail -f data/deploy.log` (prod) or `tail -f data/deploy-staging.log` (staging). Hooks require `git config core.hooksPath .githooks` (set once per clone).
+- **Workflow:** commit to `staging` → auto-deploys :3002 → phone smoke-test on the staging URL → promote with `git checkout main && git merge staging --ff-only && git push origin main` → post-merge hook auto-deploys :3001.
+- **Staging DB** is refreshed from a live prod `.backup` snapshot on every staging deploy, so migrations are exercised against real-shaped data before prod.
+- **Prod deploys snapshot first:** `deploy.sh` writes a pre-deploy copy of the prod DB to `data/backups/` (keeps the last 20) as a recovery net. Migrations then apply automatically on container boot.
+- The HTTPS URLs are served via host-level Tailscale **Services** (`svc:gym`, `svc:gym-staging` on `tag:server`), not per-stack sidecars — no Docker/compose changes involved.
+
 ## Long-term documentation hub
 
 The Obsidian note at `~/pkm/projects/01 active/simple-gym/simple-gym.md` is the single source of truth for long-term project documentation and cross-session continuity. It holds outstanding tasks, backlog, progress log, decisions, and context that should survive past the current conversation.
