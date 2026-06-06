@@ -17,10 +17,9 @@ import {
 import SortableExerciseGroup from './SortableExerciseGroup.jsx'
 import UndoToast from './UndoToast.jsx'
 import { useUndoableRemoval } from '../hooks/useUndoableRemoval.js'
+import { useCategories } from '../hooks/useCategories.js'
 import './LiveWorkout.css'
 import './WorkoutEdit.css'
-
-const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'core']
 
 // Local timezone-aware <-> ISO conversion for <input type="datetime-local">.
 // The input gives/receives "YYYY-MM-DDTHH:mm" interpreted as local time.
@@ -57,6 +56,7 @@ function groupSets(flatSets, notes = {}) {
 }
 
 export default function WorkoutEdit({ session: initialSession, onClose }) {
+  const { categories } = useCategories()
   const [session, setSession] = useState(initialSession)
   const [sets, setSets] = useState(groupSets(initialSession.sets || [], initialSession.notes || {}))
   const [startedLocal, setStartedLocal] = useState(isoToLocalInput(initialSession.started_at))
@@ -331,7 +331,7 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
             autoFocus
           />
           <div className="filter-tabs">
-            {MUSCLE_GROUPS.map(group => (
+            {['all', ...categories].map(group => (
               <button
                 key={group}
                 className={`filter-tab ${pickerFilter === group ? 'active' : ''}`}

@@ -17,11 +17,11 @@ import {
 import SortableExerciseGroup from './SortableExerciseGroup.jsx'
 import UndoToast from './UndoToast.jsx'
 import { useUndoableRemoval } from '../hooks/useUndoableRemoval.js'
+import { useCategories } from '../hooks/useCategories.js'
 import './LiveWorkout.css'
 
-const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'core']
-
 export default function LiveWorkout({ session: initialSession, onEnd, onMinimise }) {
+  const { categories } = useCategories()
   const [session] = useState(initialSession)
   const [sets, setSets] = useState(groupSets(initialSession.sets || [], initialSession.notes || {}))
   const [elapsed, setElapsed] = useState(0)
@@ -275,17 +275,25 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   }
 
   async function handleToggleComplete(groupIdx, setIdx) {
-    const set = sets[groupIdx].sets[setIdx]
+    const group = sets[groupIdx]
+    const set = group.sets[setIdx]
     const next = set.completed_at == null
     const nowIso = next ? new Date().toISOString() : null
+    // Ticking a set with nothing entered adopts the grayed PR placeholder (the
+    // previous record shown in the inputs), so a "same as last time" set is a
+    // single tap.
+    const pr = prs[group.exercise_id]
+    const adopt = next && set.weight == null && set.reps == null && pr
+    const weight = adopt ? pr.weight : set.weight
+    const reps = adopt ? pr.reps : set.reps
     setSets(prev => {
       const updated = [...prev]
       const g = { ...updated[groupIdx], sets: [...updated[groupIdx].sets] }
-      g.sets[setIdx] = { ...g.sets[setIdx], completed_at: nowIso }
+      g.sets[setIdx] = { ...g.sets[setIdx], completed_at: nowIso, weight, reps }
       updated[groupIdx] = g
       return updated
     })
-    await updateSet(set.id, set.weight, set.reps, next)
+    await updateSet(set.id, weight, reps, next)
   }
 
   async function handleSetBlur(groupIdx, setIdx) {
@@ -484,7 +492,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
             autoFocus
           />
           <div className="filter-tabs">
-            {MUSCLE_GROUPS.map(group => (
+            {['all', ...categories].map(group => (
               <button
                 key={group}
                 className={`filter-tab ${pickerFilter === group ? 'active' : ''}`}

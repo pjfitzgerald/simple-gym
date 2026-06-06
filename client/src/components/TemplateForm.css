@@ -152,6 +152,38 @@
   cursor: default;
 }
 
+/* Multi-select picker rows: tick box, name (fills), then muscle group. */
+.picker-item .picker-check {
+  flex-shrink: 0;
+  width: 18px;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.picker-item.checked {
+  background: var(--accent-bg);
+}
+
+.picker-item.checked .picker-check {
+  color: var(--accent);
+}
+
+.picker-item .picker-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picker-add-selected {
+  width: 100%;
+}
+
+.picker-add-selected:disabled {
+  opacity: 0.4;
+}
+
 .template-form-actions {
   display: flex;
   justify-content: flex-end;

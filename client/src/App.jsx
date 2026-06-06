@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import ExerciseLibrary from './components/ExerciseLibrary.jsx'
 import TemplateList from './components/TemplateList.jsx'
@@ -29,6 +29,10 @@ function App() {
   // An unfinished session found on load — the PWA was closed mid-workout.
   const [resumable, setResumable] = useState(null)
   const [loading, setLoading] = useState(true)
+  // Horizontal swipe across the tab content moves between tabs. The start
+  // point is recorded on pointer-down; if the gesture began on a swipe-to-
+  // delete card we let that card own it instead of changing tabs.
+  const swipe = useRef({ x: 0, y: 0, onCard: false })
 
   // Push page content above the fixed bottom bar when it's shown.
   useEffect(() => {
@@ -85,6 +89,28 @@ function App() {
     setResumable(null)
   }
 
+  function onContentPointerDown(e) {
+    swipe.current = {
+      x: e.clientX,
+      y: e.clientY,
+      onCard: !!e.target.closest?.('.swipeable-content'),
+    }
+  }
+
+  // A clearly-horizontal swipe (not starting on a swipe-to-delete card) flips
+  // to the adjacent tab.
+  function onContentPointerUp(e) {
+    const { x, y, onCard } = swipe.current
+    if (onCard) return
+    const dx = e.clientX - x
+    const dy = e.clientY - y
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    const idx = TABS.findIndex(t => t.id === tab)
+    const nextIdx = dx < 0 ? idx + 1 : idx - 1
+    if (nextIdx < 0 || nextIdx >= TABS.length) return
+    setTab(TABS[nextIdx].id)
+  }
+
   async function discardResumable() {
     if (!confirm('Discard this in-progress workout? Any logged sets will be lost.')) return
     await fetch(`/api/sessions/${resumable.id}`, { method: 'DELETE' })
@@ -132,9 +158,17 @@ function App() {
           ))}
         </nav>
       </header>
-      {tab === 'templates' && <TemplateList onStartWorkout={startWorkout} />}
-      {tab === 'history' && <WorkoutHistory onResume={setActiveSession} />}
-      {tab === 'exercises' && <ExerciseLibrary />}
+      <main
+        className="tab-content"
+        onPointerDown={onContentPointerDown}
+        onPointerUp={onContentPointerUp}
+      >
+        <div className="tab-pane" key={tab}>
+          {tab === 'templates' && <TemplateList onStartWorkout={startWorkout} />}
+          {tab === 'history' && <WorkoutHistory onResume={setActiveSession} />}
+          {tab === 'exercises' && <ExerciseLibrary />}
+        </div>
+      </main>
       {activeSession && minimised && (
         <MinimisedSessionBar session={activeSession} onMaximise={handleMaximise} />
       )}

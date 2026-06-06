@@ -62,19 +62,29 @@ export default function SortableExerciseGroup({
       </Swipeable>
 
       {/* Optional free-text note for this exercise card. The button just
-          reveals the textarea; the note persists on blur. */}
+          reveals the textarea; the note persists on blur. A ✕ collapses it
+          again (the saved text is kept and reappears when reopened). */}
       {showNotes ? (
-        <textarea
-          className="group-notes"
-          placeholder="Notes…"
-          value={group.notes ?? ''}
-          rows={2}
-          onChange={e => onNotesChange(gi, e.target.value)}
-          onBlur={() => onNotesBlur(gi)}
-        />
+        <div className="group-notes-wrap">
+          <textarea
+            className="group-notes"
+            placeholder="Notes…"
+            value={group.notes ?? ''}
+            rows={2}
+            autoFocus
+            onChange={e => onNotesChange(gi, e.target.value)}
+            onBlur={() => onNotesBlur(gi)}
+          />
+          <button
+            className="btn-close-note"
+            onClick={() => setShowNotes(false)}
+            aria-label="Close note"
+            title="Close note"
+          >✕</button>
+        </div>
       ) : (
         <button className="btn-add-note" onClick={() => setShowNotes(true)}>
-          + Note
+          {group.notes ? 'Note' : '+ Note'}
         </button>
       )}
 

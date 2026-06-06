@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
+import { useCategories } from '../hooks/useCategories.js'
 import './TemplateForm.css'
 
-const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'core']
-
 export default function TemplateForm({ template, onDone, onCancel }) {
+  const { categories } = useCategories()
   const [name, setName] = useState(template?.name || '')
   const [selectedExercises, setSelectedExercises] = useState([])
   const [allExercises, setAllExercises] = useState([])
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [showPicker, setShowPicker] = useState(false)
+  // Exercise ids ticked in the picker but not yet committed — lets you bulk
+  // select several and add them all in one tap.
+  const [pending, setPending] = useState([])
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -59,16 +62,33 @@ export default function TemplateForm({ template, onDone, onCancel }) {
     onDone()
   }
 
-  function addExercise(exercise) {
-    if (selectedExercises.some(e => e.exercise_id === exercise.id)) return
-    setSelectedExercises([...selectedExercises, {
-      exercise_id: exercise.id,
-      name: exercise.name,
-      muscle_group: exercise.muscle_group,
-      default_sets: 3,
-    }])
+  function togglePending(id) {
+    setPending(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  // Commit every ticked exercise to the template at once, then close the picker.
+  function addSelected() {
+    const toAdd = allExercises.filter(
+      ex => pending.includes(ex.id) && !selectedExercises.some(s => s.exercise_id === ex.id)
+    )
+    setSelectedExercises([
+      ...selectedExercises,
+      ...toAdd.map(ex => ({
+        exercise_id: ex.id,
+        name: ex.name,
+        muscle_group: ex.muscle_group,
+        default_sets: 3,
+      })),
+    ])
+    setPending([])
     setShowPicker(false)
     setSearch('')
+  }
+
+  function togglePicker() {
+    setPending([])
+    setSearch('')
+    setShowPicker(s => !s)
   }
 
   function removeExercise(index) {
@@ -115,7 +135,7 @@ export default function TemplateForm({ template, onDone, onCancel }) {
       <div className="selected-exercises">
         <div className="section-header">
           <h3>Exercises ({selectedExercises.length})</h3>
-          <button type="button" className="btn-primary btn-small" onClick={() => setShowPicker(!showPicker)}>
+          <button type="button" className="btn-primary btn-small" onClick={togglePicker}>
             + Add
           </button>
         </div>
@@ -165,7 +185,7 @@ export default function TemplateForm({ template, onDone, onCancel }) {
             autoFocus
           />
           <div className="filter-tabs">
-            {MUSCLE_GROUPS.map(group => (
+            {['all', ...categories].map(group => (
               <button
                 type="button"
                 key={group}
@@ -179,20 +199,30 @@ export default function TemplateForm({ template, onDone, onCancel }) {
           <div className="picker-list">
             {filteredExercises.map(ex => {
               const alreadyAdded = selectedExercises.some(s => s.exercise_id === ex.id)
+              const checked = pending.includes(ex.id)
               return (
                 <button
                   type="button"
                   key={ex.id}
-                  className={`picker-item ${alreadyAdded ? 'added' : ''}`}
-                  onClick={() => addExercise(ex)}
+                  className={`picker-item ${alreadyAdded ? 'added' : ''} ${checked ? 'checked' : ''}`}
+                  onClick={() => togglePending(ex.id)}
                   disabled={alreadyAdded}
                 >
-                  <span>{ex.name}</span>
+                  <span className="picker-check">{alreadyAdded ? '✓' : checked ? '☑' : '☐'}</span>
+                  <span className="picker-name">{ex.name}</span>
                   <span className="exercise-group">{ex.muscle_group}</span>
                 </button>
               )
             })}
           </div>
+          <button
+            type="button"
+            className="btn-primary picker-add-selected"
+            onClick={addSelected}
+            disabled={pending.length === 0}
+          >
+            Add {pending.length || ''} {pending.length === 1 ? 'exercise' : 'exercises'}
+          </button>
         </div>
       )}
 
