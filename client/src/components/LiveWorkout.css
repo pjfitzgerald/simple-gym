@@ -228,10 +228,15 @@
   color: var(--accent);
 }
 
+.group-notes-wrap {
+  position: relative;
+  margin-bottom: 10px;
+}
+
 .group-notes {
   width: 100%;
-  margin-bottom: 10px;
-  padding: 8px;
+  display: block;
+  padding: 8px 30px 8px 8px;
   font-size: 14px;
   font-family: inherit;
   line-height: 1.4;
@@ -240,6 +245,28 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   resize: vertical;
+}
+
+.btn-close-note {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.btn-close-note:hover {
+  color: var(--danger);
 }
 
 /* Fill-down: copy this set's weight/reps to the sets below. Sits left of the

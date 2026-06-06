@@ -38,6 +38,16 @@
   border-bottom-color: var(--accent);
 }
 
+/* Swipe-between-tabs: a light slide-in when the active tab changes. */
+.tab-pane {
+  animation: tab-in 0.18s ease;
+}
+
+@keyframes tab-in {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 /* Resume in-progress workout prompt */
 .resume-prompt {
   background: var(--surface);

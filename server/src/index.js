@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import cors from 'cors';
 import { initDb } from './db/database.js';
 import exercisesRouter from './routes/exercises.js';
+import categoriesRouter from './routes/categories.js';
 import templatesRouter from './routes/templates.js';
 import sessionsRouter from './routes/sessions.js';
 
@@ -16,6 +17,7 @@ app.use(express.json());
 
 // API routes
 app.use('/api/exercises', exercisesRouter);
+app.use('/api/categories', categoriesRouter);
 app.use('/api/templates', templatesRouter);
 app.use('/api/sessions', sessionsRouter);
 

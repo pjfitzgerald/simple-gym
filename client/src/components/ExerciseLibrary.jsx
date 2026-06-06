@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import ExerciseForm from './ExerciseForm.jsx'
+import { useCategories } from '../hooks/useCategories.js'
 import './ExerciseLibrary.css'
 
-const MUSCLE_GROUPS = ['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'core']
-
 export default function ExerciseLibrary() {
+  const { categories } = useCategories()
   const [exercises, setExercises] = useState([])
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
@@ -61,7 +61,7 @@ export default function ExerciseLibrary() {
       />
 
       <div className="filter-tabs">
-        {MUSCLE_GROUPS.map(group => (
+        {['all', ...categories].map(group => (
           <button
             key={group}
             className={`filter-tab ${filter === group ? 'active' : ''}`}
@@ -87,12 +87,10 @@ export default function ExerciseLibrary() {
               <span className="exercise-name">{ex.name}</span>
               <span className="exercise-group">{ex.muscle_group}</span>
             </div>
-            {ex.is_custom === 1 && (
-              <div className="exercise-actions">
-                <button className="btn-ghost" onClick={() => handleEdit(ex)}>Edit</button>
-                <button className="btn-ghost btn-danger" onClick={() => handleDelete(ex)}>Delete</button>
-              </div>
-            )}
+            <div className="exercise-actions">
+              <button className="btn-ghost" onClick={() => handleEdit(ex)}>Edit</button>
+              <button className="btn-ghost btn-danger" onClick={() => handleDelete(ex)}>Delete</button>
+            </div>
           </div>
         ))}
         {filtered.length === 0 && (

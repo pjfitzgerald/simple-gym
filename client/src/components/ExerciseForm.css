@@ -26,3 +26,18 @@
   justify-content: flex-end;
   gap: 8px;
 }
+
+.new-category-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.new-category-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.new-category-row .btn-small {
+  flex-shrink: 0;
+}
