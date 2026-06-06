@@ -71,7 +71,11 @@ export default function WorkoutHistory({ onResume }) {
   }
 
   if (detail) {
+    // Preserve the session's exercise order (sets arrive sorted by sort_order).
+    // A plain object keyed by exercise_id would re-sort integer-like keys
+    // numerically and lose any mid-session reorder, so track order explicitly.
     const grouped = {}
+    const order = []
     for (const set of detail.sets) {
       if (!grouped[set.exercise_id]) {
         grouped[set.exercise_id] = {
@@ -80,9 +84,11 @@ export default function WorkoutHistory({ onResume }) {
           notes: detail.notes?.[set.exercise_id] || '',
           sets: [],
         }
+        order.push(set.exercise_id)
       }
       grouped[set.exercise_id].sets.push(set)
     }
+    const groups = order.map(k => grouped[k])
 
     return (
       <div className="history-detail">
@@ -105,7 +111,7 @@ export default function WorkoutHistory({ onResume }) {
           </span>
         </div>
 
-        {Object.values(grouped).map((group, i) => (
+        {groups.map((group, i) => (
           <div key={i} className="detail-exercise">
             <div className="detail-exercise-header">
               <h3>{group.name}</h3>
