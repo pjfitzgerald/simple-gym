@@ -6,16 +6,11 @@
   color: var(--text);
 }
 
-/* The card sits inside a Swipeable (swipe left to delete); the gap between
-   cards lives on the wrapper so the red delete layer doesn't peek out below. */
-.history-swipe {
-  margin-bottom: 8px;
-}
-
 .history-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 8px;
   padding: 14px 16px;
   background: var(--surface);
   border: 1px solid var(--border);
