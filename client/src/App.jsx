@@ -22,6 +22,9 @@ function formatStarted(iso) {
 
 function App() {
   const [tab, setTab] = useState('templates')
+  // Direction of the last tab change ('next' = rightward in the tab order),
+  // so the incoming pane can slide in from the matching side.
+  const [dir, setDir] = useState('next')
   const [activeSession, setActiveSession] = useState(null)
   // When true, the active session is collapsed to a bottom bar so the rest
   // of the app is browsable. Tapping the bar restores LiveWorkout.
@@ -87,6 +90,16 @@ function App() {
     setMinimised(false)
   }
 
+  // Single entry point for tab changes so the slide direction is always set
+  // from the index delta, whether the change came from a swipe or a nav tap.
+  function goToTab(nextId) {
+    const from = TABS.findIndex(t => t.id === tab)
+    const to = TABS.findIndex(t => t.id === nextId)
+    if (to === -1 || to === from) return
+    setDir(to > from ? 'next' : 'prev')
+    setTab(nextId)
+  }
+
   function resumeWorkout() {
     setActiveSession(resumable)
     setResumable(null)
@@ -123,7 +136,7 @@ function App() {
     const idx = TABS.findIndex(tb => tb.id === tab)
     const nextIdx = dx < 0 ? idx + 1 : idx - 1
     if (nextIdx < 0 || nextIdx >= TABS.length) return
-    setTab(TABS[nextIdx].id)
+    goToTab(TABS[nextIdx].id)
   }
 
   async function discardResumable() {
@@ -166,7 +179,7 @@ function App() {
             <button
               key={t.id}
               className={`nav-tab ${tab === t.id ? 'active' : ''}`}
-              onClick={() => setTab(t.id)}
+              onClick={() => goToTab(t.id)}
             >
               {t.label}
             </button>
@@ -178,7 +191,7 @@ function App() {
         onTouchStart={onContentTouchStart}
         onTouchEnd={onContentTouchEnd}
       >
-        <div className="tab-pane" key={tab}>
+        <div className={`tab-pane tab-${dir}`} key={tab}>
           {tab === 'templates' && <TemplateList onStartWorkout={startWorkout} />}
           {tab === 'history' && <WorkoutHistory onResume={setActiveSession} />}
           {tab === 'exercises' && <ExerciseLibrary />}

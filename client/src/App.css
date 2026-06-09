@@ -43,15 +43,31 @@
 .tab-content {
   display: block;
   min-height: calc(100vh - 140px);
+  /* The incoming pane slides in from off to one side; clip so that travel
+     never shows a horizontal scrollbar. */
+  overflow-x: clip;
 }
 
 .tab-pane {
-  animation: tab-in 0.18s ease;
+  animation: tab-in-next 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@keyframes tab-in {
-  from { opacity: 0; transform: translateX(8px); }
+.tab-pane.tab-prev {
+  animation-name: tab-in-prev;
+}
+
+@keyframes tab-in-next {
+  from { opacity: 0; transform: translateX(40px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes tab-in-prev {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-pane { animation: none; }
 }
 
 /* Resume in-progress workout prompt */
