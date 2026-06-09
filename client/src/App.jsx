@@ -29,10 +29,12 @@ function App() {
   // An unfinished session found on load — the PWA was closed mid-workout.
   const [resumable, setResumable] = useState(null)
   const [loading, setLoading] = useState(true)
-  // Horizontal swipe across the tab content moves between tabs. The start
-  // point is recorded on pointer-down; if the gesture began on a swipe-to-
-  // delete card we let that card own it instead of changing tabs.
-  const swipe = useRef({ x: 0, y: 0, onCard: false })
+  // Horizontal swipe across the tab content moves between tabs, anywhere on
+  // the page. The start point is recorded on touch-start; `onCard` means the
+  // gesture began on a swipe-to-delete card (History) — those own *left*
+  // swipes (delete) but still let right swipes change tabs. `noSwipe` means a
+  // focused sub-view (an open History detail/edit) that opts out of tab nav.
+  const swipe = useRef({ x: 0, y: 0, onCard: false, noSwipe: false })
 
   // Push page content above the fixed bottom bar when it's shown.
   useEffect(() => {
@@ -100,19 +102,23 @@ function App() {
       x: t.clientX,
       y: t.clientY,
       onCard: !!e.target.closest?.('.swipeable-content'),
+      noSwipe: !!e.target.closest?.('.no-tab-swipe'),
     }
   }
 
-  // A clearly-horizontal swipe (not starting on a swipe-to-delete card) flips
-  // to the adjacent tab.
+  // A clearly-horizontal swipe flips to the adjacent tab. It works anywhere on
+  // the page, with two exceptions: a focused sub-view (`.no-tab-swipe`) opts
+  // out entirely, and a swipe-to-delete card keeps *left* swipes for itself
+  // (its delete gesture) while still yielding right swipes to tab nav.
   function onContentTouchEnd(e) {
-    const { x, y, onCard } = swipe.current
-    if (onCard) return
+    const { x, y, onCard, noSwipe } = swipe.current
+    if (noSwipe) return
     const t = e.changedTouches[0]
     if (!t) return
     const dx = t.clientX - x
     const dy = t.clientY - y
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    if (onCard && dx < 0) return
     const idx = TABS.findIndex(tb => tb.id === tab)
     const nextIdx = dx < 0 ? idx + 1 : idx - 1
     if (nextIdx < 0 || nextIdx >= TABS.length) return

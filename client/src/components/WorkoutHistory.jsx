@@ -91,7 +91,7 @@ export default function WorkoutHistory({ onResume }) {
     const groups = order.map(k => grouped[k])
 
     return (
-      <div className="history-detail">
+      <div className="history-detail no-tab-swipe">
         <div className="detail-toolbar">
           <button className="btn-ghost" onClick={() => setDetail(null)}>Back</button>
           <div className="detail-toolbar-right">

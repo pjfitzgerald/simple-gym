@@ -259,7 +259,7 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
   })
 
   return (
-    <div className="live-workout workout-edit">
+    <div className="live-workout workout-edit no-tab-swipe">
       <header className="app-header workout-header">
         <div className="workout-header-row">
           <div>
