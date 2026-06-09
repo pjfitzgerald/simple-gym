@@ -2,13 +2,30 @@ import { useState, useEffect } from 'react'
 import WorkoutEdit from './WorkoutEdit.jsx'
 import './WorkoutHistory.css'
 
+// The tab panes remount on every tab switch, so cache the last-fetched
+// sessions module-side. Re-entering History then renders its cards instantly
+// from the cache (and still refetches in the background) instead of flashing
+// an empty list + "no workouts" message while a fresh fetch resolves.
+let sessionsCache = null
+
 export default function WorkoutHistory({ onResume }) {
-  const [sessions, setSessions] = useState([])
+  const [sessions, setSessions] = useState(sessionsCache ?? [])
+  // Only trust an empty list once a fetch has actually completed, so the
+  // empty-state message never shows during the initial load.
+  const [loaded, setLoaded] = useState(sessionsCache != null)
   const [detail, setDetail] = useState(null)
   const [editing, setEditing] = useState(false)
 
+  function storeSessions(next) {
+    sessionsCache = next
+    setSessions(next)
+  }
+
   useEffect(() => {
-    fetch('/api/sessions').then(r => r.json()).then(setSessions)
+    fetch('/api/sessions').then(r => r.json()).then(data => {
+      storeSessions(data)
+      setLoaded(true)
+    })
   }, [])
 
   async function viewDetail(session) {
@@ -19,7 +36,7 @@ export default function WorkoutHistory({ onResume }) {
   async function deleteSession(id) {
     if (!confirm('Delete this workout? This cannot be undone.')) return
     await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
-    setSessions(prev => prev.filter(s => s.id !== id))
+    storeSessions(sessions.filter(s => s.id !== id))
     setDetail(null)
   }
 
@@ -31,7 +48,7 @@ export default function WorkoutHistory({ onResume }) {
       fetch('/api/sessions'),
       fetch(`/api/sessions/${detail.id}`),
     ])
-    setSessions(await listRes.json())
+    storeSessions(await listRes.json())
     setDetail(await detailRes.json())
   }
 
@@ -143,7 +160,7 @@ export default function WorkoutHistory({ onResume }) {
     <div className="workout-history">
       <h2>History</h2>
 
-      {sessions.length === 0 && (
+      {loaded && sessions.length === 0 && (
         <p className="empty-state">No workouts yet. Complete a session to see it here.</p>
       )}
 
