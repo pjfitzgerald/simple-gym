@@ -31,9 +31,10 @@ function App() {
   const [loading, setLoading] = useState(true)
   // Horizontal swipe across the tab content moves between tabs, anywhere on
   // the page. The start point is recorded on touch-start; `onCard` means the
-  // gesture began on a swipe-to-delete card (History) — those own *left*
-  // swipes (delete) but still let right swipes change tabs. `noSwipe` means a
-  // focused sub-view (an open History detail/edit) that opts out of tab nav.
+  // gesture began on a swipe-to-delete card — those own *left* swipes (delete)
+  // but still let right swipes change tabs (defensive: no tab list currently
+  // has such cards). `noSwipe` means a focused sub-view (an open History
+  // detail/edit) that opts out of tab nav.
   const swipe = useRef({ x: 0, y: 0, onCard: false, noSwipe: false })
 
   // Push page content above the fixed bottom bar when it's shown.

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import WorkoutEdit from './WorkoutEdit.jsx'
-import Swipeable from './Swipeable.jsx'
 import './WorkoutHistory.css'
 
 export default function WorkoutHistory({ onResume }) {
@@ -149,22 +148,15 @@ export default function WorkoutHistory({ onResume }) {
       )}
 
       {sessions.map(s => (
-        <Swipeable
-          key={s.id}
-          wrapperClassName="history-swipe"
-          actionLabel="Delete"
-          onDelete={() => deleteSession(s.id)}
-        >
-          <div className="history-card" onClick={() => viewDetail(s)}>
-            <div className="history-info">
-              <span className="history-name">{s.template_name || 'Blank Workout'}</span>
-              <span className="history-meta">
-                {formatDate(s.started_at)} — {formatDuration(s.duration_seconds)} — {s.total_sets} set{s.total_sets !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <span className="history-arrow">›</span>
+        <div key={s.id} className="history-card" onClick={() => viewDetail(s)}>
+          <div className="history-info">
+            <span className="history-name">{s.template_name || 'Blank Workout'}</span>
+            <span className="history-meta">
+              {formatDate(s.started_at)} — {formatDuration(s.duration_seconds)} — {s.total_sets} set{s.total_sets !== 1 ? 's' : ''}
+            </span>
           </div>
-        </Swipeable>
+          <span className="history-arrow">›</span>
+        </div>
       ))}
     </div>
   )
