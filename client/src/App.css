@@ -38,7 +38,13 @@
   border-bottom-color: var(--accent);
 }
 
-/* Swipe-between-tabs: a light slide-in when the active tab changes. */
+/* Swipe-between-tabs: fill the viewport so the gesture has a surface even on a
+   short tab, and add a light slide-in when the active tab changes. */
+.tab-content {
+  display: block;
+  min-height: calc(100vh - 140px);
+}
+
 .tab-pane {
   animation: tab-in 0.18s ease;
 }

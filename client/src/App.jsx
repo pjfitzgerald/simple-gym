@@ -89,23 +89,31 @@ function App() {
     setResumable(null)
   }
 
-  function onContentPointerDown(e) {
+  // Touch events (not pointer events) drive tab swiping: iOS fires
+  // `pointercancel` and stops sending pointer events the moment it suspects a
+  // scroll, so a pointerup-based gesture never completed. `touchend` always
+  // fires after `touchstart`, so we read the delta from changedTouches there.
+  function onContentTouchStart(e) {
+    const t = e.touches[0]
+    if (!t) return
     swipe.current = {
-      x: e.clientX,
-      y: e.clientY,
+      x: t.clientX,
+      y: t.clientY,
       onCard: !!e.target.closest?.('.swipeable-content'),
     }
   }
 
   // A clearly-horizontal swipe (not starting on a swipe-to-delete card) flips
   // to the adjacent tab.
-  function onContentPointerUp(e) {
+  function onContentTouchEnd(e) {
     const { x, y, onCard } = swipe.current
     if (onCard) return
-    const dx = e.clientX - x
-    const dy = e.clientY - y
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
-    const idx = TABS.findIndex(t => t.id === tab)
+    const t = e.changedTouches[0]
+    if (!t) return
+    const dx = t.clientX - x
+    const dy = t.clientY - y
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    const idx = TABS.findIndex(tb => tb.id === tab)
     const nextIdx = dx < 0 ? idx + 1 : idx - 1
     if (nextIdx < 0 || nextIdx >= TABS.length) return
     setTab(TABS[nextIdx].id)
@@ -160,8 +168,8 @@ function App() {
       </header>
       <main
         className="tab-content"
-        onPointerDown={onContentPointerDown}
-        onPointerUp={onContentPointerUp}
+        onTouchStart={onContentTouchStart}
+        onTouchEnd={onContentTouchEnd}
       >
         <div className="tab-pane" key={tab}>
           {tab === 'templates' && <TemplateList onStartWorkout={startWorkout} />}
