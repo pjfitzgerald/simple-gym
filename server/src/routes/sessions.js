@@ -58,6 +58,64 @@ router.get('/active', (_req, res) => {
   res.json(session);
 });
 
+// GET /api/sessions/export — full workout history as a CSV download, one row
+// per logged set (sessions with no sets still get a single row). Declared
+// before '/:id' so 'export' isn't parsed as a session id.
+router.get('/export', (_req, res) => {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT s.id as session_id, s.started_at, s.ended_at, s.duration_seconds,
+           t.name as template_name,
+           e.name as exercise_name, e.muscle_group,
+           ss.exercise_id, ss.set_number, ss.weight, ss.reps, ss.completed_at, ss.sort_order
+    FROM sessions s
+    LEFT JOIN templates t ON t.id = s.template_id
+    LEFT JOIN session_sets ss ON ss.session_id = s.id
+    LEFT JOIN exercises e ON e.id = ss.exercise_id
+    ORDER BY s.started_at DESC, ss.sort_order, ss.set_number
+  `).all();
+
+  const noteRows = db.prepare('SELECT session_id, exercise_id, notes FROM session_exercise_notes').all();
+  const notes = {};
+  for (const n of noteRows) notes[`${n.session_id}:${n.exercise_id}`] = n.notes;
+
+  // Format dates in the server's local timezone (the host T480 runs in the
+  // user's zone) so the export matches what the app shows, not UTC.
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+  const esc = (v) => {
+    if (v == null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const header = ['Date', 'Start', 'End', 'Workout', 'Duration (min)', 'Exercise', 'Muscle group', 'Set', 'Weight (kg)', 'Reps', 'Completed', 'Notes'];
+  const lines = [header.join(',')];
+  for (const r of rows) {
+    const hasSet = r.exercise_id != null;
+    lines.push([
+      fmtDate(r.started_at),
+      fmtTime(r.started_at),
+      r.ended_at ? fmtTime(r.ended_at) : '',
+      r.template_name || 'Blank Workout',
+      r.duration_seconds != null ? Math.round(r.duration_seconds / 60) : '',
+      r.exercise_name || '',
+      r.muscle_group || '',
+      r.set_number ?? '',
+      r.weight ?? '',
+      r.reps ?? '',
+      hasSet ? (r.completed_at ? 'yes' : 'no') : '',
+      hasSet ? (notes[`${r.session_id}:${r.exercise_id}`] || '') : '',
+    ].map(esc).join(','));
+  }
+
+  const filename = `simple-gym-history-${new Date().toLocaleDateString('en-CA')}.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(lines.join('\n'));
+});
+
 // GET /api/sessions/:id — get session with all logged sets
 router.get('/:id', (req, res) => {
   const db = getDb();

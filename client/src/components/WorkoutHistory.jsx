@@ -158,7 +158,14 @@ export default function WorkoutHistory({ onResume }) {
 
   return (
     <div className="workout-history">
-      <h2>History</h2>
+      <div className="history-header">
+        <h2>History</h2>
+        {sessions.length > 0 && (
+          <button className="btn-ghost" onClick={() => { window.location.href = '/api/sessions/export' }}>
+            Export
+          </button>
+        )}
+      </div>
 
       {loaded && sessions.length === 0 && (
         <p className="empty-state">No workouts yet. Complete a session to see it here.</p>

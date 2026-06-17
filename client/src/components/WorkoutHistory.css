@@ -6,6 +6,16 @@
   color: var(--text);
 }
 
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-header h2 {
+  margin: 0 0 12px;
+}
+
 .history-card {
   display: flex;
   justify-content: space-between;
@@ -15,6 +25,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
   cursor: pointer;
   transition: border-color 0.15s;
 }
@@ -78,6 +89,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
   padding: 14px;
 }
 

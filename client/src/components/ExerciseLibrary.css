@@ -34,6 +34,7 @@
   font-size: 14px;
   background: var(--surface);
   border: 1px solid var(--border);
+  border-radius: 999px;
   color: var(--text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
