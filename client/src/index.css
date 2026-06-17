@@ -52,6 +52,14 @@ body {
   min-height: 100dvh;
 }
 
+/* Give the content more room on desktop-class viewports; phones (and the
+   mobile-first layout below ~tablet width) keep the 600px column unchanged. */
+@media (min-width: 768px) {
+  #root {
+    max-width: 880px;
+  }
+}
+
 button {
   font: inherit;
   cursor: pointer;
