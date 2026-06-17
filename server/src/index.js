@@ -14,6 +14,8 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+// Raw CSV bodies for the history import endpoint (kept separate from JSON).
+app.use(express.text({ type: 'text/csv', limit: '5mb' }));
 
 // API routes
 app.use('/api/exercises', exercisesRouter);

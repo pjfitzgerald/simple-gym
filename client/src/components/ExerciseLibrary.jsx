@@ -43,6 +43,27 @@ export default function ExerciseLibrary() {
     return matchesGroup && matchesSearch
   })
 
+  // In the 'all' view, exercises are grouped under category subheadings rather
+  // than each carrying a badge. Order by the category list, then any stray
+  // muscle group not in it; items stay name-sorted (the API returns them so).
+  const present = [...new Set(filtered.map(ex => ex.muscle_group))]
+  const extra = present.filter(g => !categories.includes(g)).sort()
+  const sections = [...categories, ...extra]
+    .map(category => ({ category, items: filtered.filter(ex => ex.muscle_group === category) }))
+    .filter(section => section.items.length > 0)
+
+  function renderItem(ex) {
+    return (
+      <div key={ex.id} className="exercise-item">
+        <span className="exercise-name">{ex.name}</span>
+        <div className="exercise-actions">
+          <button className="btn-ghost" onClick={() => handleEdit(ex)}>Edit</button>
+          <button className="btn-ghost btn-danger" onClick={() => handleDelete(ex)}>Delete</button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="exercise-library">
       <div className="library-header">
@@ -81,21 +102,17 @@ export default function ExerciseLibrary() {
       )}
 
       <div className="exercise-list">
-        {filtered.map(ex => (
-          <div key={ex.id} className="exercise-item">
-            <div className="exercise-info">
-              <span className="exercise-name">{ex.name}</span>
-              <span className="exercise-group">{ex.muscle_group}</span>
-            </div>
-            <div className="exercise-actions">
-              <button className="btn-ghost" onClick={() => handleEdit(ex)}>Edit</button>
-              <button className="btn-ghost btn-danger" onClick={() => handleDelete(ex)}>Delete</button>
-            </div>
-          </div>
-        ))}
         {filtered.length === 0 && (
           <p className="empty-state">No exercises found</p>
         )}
+        {filter === 'all'
+          ? sections.map(section => (
+              <div key={section.category} className="exercise-section">
+                <h3 className="exercise-section-title">{section.category}</h3>
+                {section.items.map(renderItem)}
+              </div>
+            ))
+          : filtered.map(renderItem)}
       </div>
     </div>
   )

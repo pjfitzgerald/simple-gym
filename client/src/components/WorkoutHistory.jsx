@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import WorkoutEdit from './WorkoutEdit.jsx'
 import './WorkoutHistory.css'
 
@@ -15,10 +15,39 @@ export default function WorkoutHistory({ onResume }) {
   const [loaded, setLoaded] = useState(sessionsCache != null)
   const [detail, setDetail] = useState(null)
   const [editing, setEditing] = useState(false)
+  const fileInputRef = useRef(null)
 
   function storeSessions(next) {
     sessionsCache = next
     setSessions(next)
+  }
+
+  // Import history from a CSV in the export's shape. The endpoint skips
+  // workouts already present and auto-creates any missing exercises, so this
+  // is safe to re-run; we just refresh the list and report a summary.
+  async function handleImportFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // let the same file be re-selected later
+    if (!file) return
+    const text = await file.text()
+    const res = await fetch('/api/sessions/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/csv' },
+      body: text,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Import failed.')
+      return
+    }
+    const r = await res.json()
+    const parts = [`Imported ${r.importedSessions} workout${r.importedSessions === 1 ? '' : 's'} (${r.importedSets} set${r.importedSets === 1 ? '' : 's'})`]
+    if (r.skippedSessions) parts.push(`skipped ${r.skippedSessions} already present`)
+    if (r.createdExercises) parts.push(`created ${r.createdExercises} exercise${r.createdExercises === 1 ? '' : 's'}`)
+    alert(parts.join(', ') + '.')
+    const listRes = await fetch('/api/sessions')
+    storeSessions(await listRes.json())
+    setLoaded(true)
   }
 
   useEffect(() => {
@@ -160,11 +189,21 @@ export default function WorkoutHistory({ onResume }) {
     <div className="workout-history">
       <div className="history-header">
         <h2>History</h2>
-        {sessions.length > 0 && (
-          <button className="btn-ghost" onClick={() => { window.location.href = '/api/sessions/export' }}>
-            Export
-          </button>
-        )}
+        <div className="history-actions">
+          <button className="btn-ghost" onClick={() => fileInputRef.current?.click()}>Import</button>
+          {sessions.length > 0 && (
+            <button className="btn-ghost" onClick={() => { window.location.href = '/api/sessions/export' }}>
+              Export
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleImportFile}
+            hidden
+          />
+        </div>
       </div>
 
       {loaded && sessions.length === 0 && (

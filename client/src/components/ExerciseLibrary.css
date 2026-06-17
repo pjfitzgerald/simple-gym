@@ -51,6 +51,20 @@
   flex-direction: column;
 }
 
+/* In the 'all' view, exercises are grouped under a category subheading. */
+.exercise-section-title {
+  margin: 18px 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.exercise-section:first-child .exercise-section-title {
+  margin-top: 4px;
+}
+
 .exercise-item {
   display: flex;
   justify-content: space-between;
@@ -59,17 +73,13 @@
   border-bottom: 1px solid var(--border);
 }
 
-.exercise-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 .exercise-name {
   font-weight: 500;
   color: var(--text);
 }
 
+/* Muscle-group badge, still used in workout history / pickers (no longer in
+   the library list, which groups by category instead). */
 .exercise-group {
   font-size: 13px;
   color: var(--text-secondary);

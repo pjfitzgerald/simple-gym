@@ -12,6 +12,33 @@ const SETS_QUERY = `
   ORDER BY ss.sort_order, ss.set_number
 `;
 
+// Minimal RFC-4180-ish CSV parser: handles quoted fields with embedded
+// commas, quotes ("" escape) and newlines. Returns an array of row arrays.
+function parseCsv(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // strip BOM
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+      continue;
+    }
+    if (c === '"') inQuotes = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\r') { /* ignore */ }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else field += c;
+  }
+  if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+  return rows;
+}
+
 // Per-exercise notes for a session as a { exercise_id: notes } map, so the
 // client can hang each note off its card without a second request.
 function notesMap(db, sessionId) {
@@ -114,6 +141,158 @@ router.get('/export', (_req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(lines.join('\n'));
+});
+
+// POST /api/sessions/import — restore workout history from a CSV in the same
+// shape as the export. Idempotent: a workout already present (matched by local
+// date + start time + name) is skipped, so re-importing the same file is safe.
+// Missing exercises (and their categories) are auto-created. The whole import
+// runs in one transaction, so any error rolls it all back — no partial state.
+router.post('/import', (req, res) => {
+  const db = getDb();
+  const text = typeof req.body === 'string' ? req.body : '';
+  if (!text.trim()) return res.status(400).json({ error: 'Empty CSV body' });
+
+  const rows = parseCsv(text);
+  if (rows.length < 2) return res.status(400).json({ error: 'CSV has no data rows' });
+
+  const norm = (s) => (s ?? '').trim().toLowerCase();
+  const head = rows[0].map(norm);
+  const col = (name) => head.indexOf(norm(name));
+  const idx = {
+    date: col('Date'), start: col('Start'), end: col('End'),
+    workout: col('Workout'), duration: col('Duration (min)'),
+    exercise: col('Exercise'), muscle: col('Muscle group'),
+    set: col('Set'), weight: col('Weight (kg)'), reps: col('Reps'),
+    completed: col('Completed'), notes: col('Notes'),
+  };
+  if (idx.date < 0 || idx.start < 0 || idx.exercise < 0) {
+    return res.status(400).json({ error: 'CSV is missing required columns (Date, Start, Exercise)' });
+  }
+  const cell = (row, i) => (i >= 0 && i < row.length ? row[i] : '');
+
+  // Dedup key, computed exactly the way the export formats date/time, so an
+  // import matches both original sessions and previously-imported ones (both
+  // collapse to the same minute-resolution key).
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-CA');
+  const fmtTime = (iso) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const existing = db.prepare(`
+    SELECT s.started_at, COALESCE(t.name, 'Blank Workout') AS workout
+    FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
+  `).all();
+  const seen = new Set(existing.map(s => `${fmtDate(s.started_at)}|${fmtTime(s.started_at)}|${s.workout}`));
+
+  // Group data rows into sessions by date+start+workout (the export's identity),
+  // preserving row order within each group.
+  const groups = new Map();
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const date = cell(row, idx.date).trim();
+    const start = cell(row, idx.start).trim();
+    if (!date || !start) continue;
+    const workout = cell(row, idx.workout).trim() || 'Blank Workout';
+    const key = `${date}|${start}|${workout}`;
+    if (!groups.has(key)) groups.set(key, { date, start, workout, rows: [] });
+    groups.get(key).rows.push(row);
+  }
+
+  const findExercise = db.prepare('SELECT id FROM exercises WHERE name = ? COLLATE NOCASE LIMIT 1');
+  const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name) VALUES (?)');
+  const insertExercise = db.prepare('INSERT INTO exercises (name, muscle_group, is_custom) VALUES (?, ?, 1)');
+  const findTemplate = db.prepare('SELECT id FROM templates WHERE name = ? COLLATE NOCASE LIMIT 1');
+  const insertSession = db.prepare('INSERT INTO sessions (template_id, started_at, ended_at, duration_seconds) VALUES (?, ?, ?, ?)');
+  const insertSet = db.prepare('INSERT INTO session_sets (session_id, exercise_id, set_number, weight, reps, completed_at, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  const upsertNote = db.prepare(`
+    INSERT INTO session_exercise_notes (session_id, exercise_id, notes) VALUES (?, ?, ?)
+    ON CONFLICT(session_id, exercise_id) DO UPDATE SET notes = excluded.notes
+  `);
+
+  const exerciseCache = new Map(); // lower(name) -> id
+  let createdExercises = 0;
+  function exerciseId(name, muscle) {
+    const key = name.toLowerCase();
+    if (exerciseCache.has(key)) return exerciseCache.get(key);
+    let row = findExercise.get(name);
+    if (!row) {
+      const mg = norm(muscle) || 'other';
+      insertCategory.run(mg);
+      row = { id: insertExercise.run(name, mg).lastInsertRowid };
+      createdExercises++;
+    }
+    exerciseCache.set(key, row.id);
+    return row.id;
+  }
+
+  // 'YYYY-MM-DD' + 'HH:MM' parsed as local time, stored as UTC ISO (matching
+  // how the app writes started_at).
+  const toIso = (date, time) => {
+    const d = new Date(`${date}T${time || '00:00'}:00`);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  };
+
+  let importedSessions = 0, skippedSessions = 0, importedSets = 0;
+
+  const run = db.transaction(() => {
+    for (const g of groups.values()) {
+      const key = `${g.date}|${g.start}|${g.workout}`;
+      if (seen.has(key)) { skippedSessions++; continue; }
+
+      const startedAt = toIso(g.date, g.start);
+      if (!startedAt) { skippedSessions++; continue; }
+
+      // End time / duration from the first rows that carry them.
+      let endedAt = null, duration = null;
+      for (const row of g.rows) {
+        const endStr = cell(row, idx.end).trim();
+        if (endStr && !endedAt) {
+          let e = new Date(`${g.date}T${endStr}:00`);
+          if (!isNaN(e.getTime()) && e < new Date(`${g.date}T${g.start}:00`)) {
+            e = new Date(e.getTime() + 86400000); // workout crossed midnight
+          }
+          endedAt = isNaN(e.getTime()) ? null : e.toISOString();
+        }
+        const durStr = cell(row, idx.duration).trim();
+        if (durStr && duration == null) {
+          const m = Number(durStr);
+          if (!isNaN(m)) duration = Math.round(m * 60);
+        }
+      }
+
+      const tName = g.workout !== 'Blank Workout' ? g.workout : null;
+      const tmpl = tName ? findTemplate.get(tName) : null;
+      const sessionId = insertSession.run(tmpl ? tmpl.id : null, startedAt, endedAt, duration).lastInsertRowid;
+
+      const exOrder = new Map(); // exId -> sort_order (first-appearance)
+      const exSetCount = new Map(); // exId -> running set count (fallback numbering)
+      for (const row of g.rows) {
+        const exName = cell(row, idx.exercise).trim();
+        if (!exName) continue; // a logged session with no sets
+        const exId = exerciseId(exName, cell(row, idx.muscle));
+        if (!exOrder.has(exId)) exOrder.set(exId, exOrder.size);
+        const n = (exSetCount.get(exId) || 0) + 1;
+        exSetCount.set(exId, n);
+
+        const setRaw = parseInt(cell(row, idx.set).trim(), 10);
+        const setNumber = Number.isFinite(setRaw) && setRaw > 0 ? setRaw : n;
+        const weightStr = cell(row, idx.weight).trim();
+        const repsStr = cell(row, idx.reps).trim();
+        const weight = weightStr === '' || isNaN(Number(weightStr)) ? null : Number(weightStr);
+        const reps = repsStr === '' || !Number.isFinite(parseInt(repsStr, 10)) ? null : parseInt(repsStr, 10);
+        const completed = norm(cell(row, idx.completed)) === 'yes';
+        insertSet.run(sessionId, exId, setNumber, weight, reps, completed ? startedAt : null, exOrder.get(exId));
+        importedSets++;
+
+        const note = cell(row, idx.notes).trim();
+        if (note) upsertNote.run(sessionId, exId, note);
+      }
+
+      seen.add(key); // a duplicate group later in the same file is also skipped
+      importedSessions++;
+    }
+  });
+  run();
+
+  res.json({ importedSessions, skippedSessions, importedSets, createdExercises });
 });
 
 // GET /api/sessions/:id — get session with all logged sets
