@@ -41,8 +41,8 @@
 .selected-exercise-info {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: baseline;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -54,14 +54,37 @@
   text-overflow: ellipsis;
 }
 
-.selected-exercise-info .exercise-group {
-  font-size: 12px;
+/* Small category tag beside the name — same treatment as the Exercises-tab
+   subheadings, scaled down. */
+.exercise-category {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
 }
 
-.reorder-buttons {
+/* Grip handle: the drag target for reordering (replaces the up/down buttons).
+   touch-action:none so dragging it never scrolls the page. */
+.drag-handle {
+  flex-shrink: 0;
+  width: 24px;
+  height: 28px;
+  padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .sets-control {
@@ -106,6 +129,14 @@
 .btn-icon:disabled {
   opacity: 0.3;
   cursor: default;
+}
+
+/* Delete-exercise button: red, and set apart from the sets -/+ cluster. */
+.btn-remove {
+  margin-left: 10px;
+  border-color: transparent;
+  color: var(--danger);
+  font-size: 16px;
 }
 
 .btn-remove:hover {
