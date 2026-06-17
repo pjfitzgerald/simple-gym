@@ -9,6 +9,9 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - DB_PATH=/app/data/simple-gym.db
+      # Match the host zone so date formatting (e.g. the CSV export) lines up
+      # with what the app shows, not UTC.
+      - TZ=Australia/Melbourne
     restart: unless-stopped
 
 volumes:
