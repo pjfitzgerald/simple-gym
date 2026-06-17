@@ -51,10 +51,15 @@
   flex-direction: column;
 }
 
-/* In the 'all' view, exercises are grouped under a category subheading. */
+/* In the 'all' view, exercises are grouped under a category subheading, with
+   extra breathing room between the category sections. */
+.exercise-section + .exercise-section {
+  margin-top: 16px;
+}
+
 .exercise-section-title {
   margin: 18px 0 2px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
