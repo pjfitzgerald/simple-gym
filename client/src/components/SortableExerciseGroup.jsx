@@ -2,6 +2,39 @@ import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import Swipeable from './Swipeable.jsx'
+import { useSettings, formatWeight, displayToKg, unitLabel } from '../hooks/useSettings.jsx'
+
+// Weight input that shows/accepts the active unit while the underlying value
+// stays in kg. A focus buffer holds the raw text being typed so converting
+// kg→display→string mid-keystroke can't mangle a partial decimal (e.g. "10.").
+function WeightInput({ valueKg, prWeightKg, unit, onChangeKg, onCommit }) {
+  const [focused, setFocused] = useState(false)
+  const [raw, setRaw] = useState('')
+  const display = valueKg == null ? '' : formatWeight(valueKg, unit)
+  const placeholder = prWeightKg != null ? formatWeight(prWeightKg, unit) : unitLabel(unit)
+  return (
+    <input
+      className="set-col-weight"
+      type="number"
+      inputMode="decimal"
+      placeholder={placeholder}
+      value={focused ? raw : display}
+      onFocus={() => { setRaw(display); setFocused(true) }}
+      onChange={e => {
+        setRaw(e.target.value)
+        const v = e.target.value ? parseFloat(e.target.value) : null
+        onChangeKg(v == null || Number.isNaN(v) ? null : displayToKg(v, unit))
+      }}
+      onBlur={() => { setFocused(false); onCommit() }}
+      onKeyDown={e => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          e.target.nextElementSibling?.focus()
+        }
+      }}
+    />
+  )
+}
 
 // One exercise group. The shell is the @dnd-kit drag target (long-press the
 // card to reorder). Inside, a Swipeable lets you swipe the whole card left to
@@ -23,6 +56,7 @@ export default function SortableExerciseGroup({
   onNotesChange,
   onNotesBlur,
 }) {
+  const { unit } = useSettings()
   // The notes textarea starts open if there's already a note to show.
   const [showNotes, setShowNotes] = useState(!!group.notes)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -55,7 +89,7 @@ export default function SortableExerciseGroup({
           </div>
           {pr && (
             <span className="group-pr" title="Personal record">
-              PR {pr.weight} kg × {pr.reps}
+              PR {formatWeight(pr.weight, unit)} {unitLabel(unit)} × {pr.reps}
             </span>
           )}
         </div>
@@ -91,7 +125,7 @@ export default function SortableExerciseGroup({
       <div className="sets-table">
           <div className="sets-row sets-header-row">
             <span className="set-col-num">Set</span>
-            <span className="set-col-weight">Weight</span>
+            <span className="set-col-weight">Weight ({unitLabel(unit)})</span>
             <span className="set-col-reps">Reps</span>
             <span className="set-col-actions"></span>
           </div>
@@ -108,20 +142,12 @@ export default function SortableExerciseGroup({
                 onDelete={() => onDeleteSet(set.id)}
               >
                 <span className="set-col-num">{set.set_number}</span>
-                <input
-                  className="set-col-weight"
-                  type="number"
-                  inputMode="decimal"
-                  placeholder={pr ? String(pr.weight) : 'kg'}
-                  value={set.weight ?? ''}
-                  onChange={e => onSetChange(gi, si, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
-                  onBlur={() => onSetBlur(gi, si)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      e.target.nextElementSibling?.focus()
-                    }
-                  }}
+                <WeightInput
+                  valueKg={set.weight}
+                  prWeightKg={pr ? pr.weight : null}
+                  unit={unit}
+                  onChangeKg={kg => onSetChange(gi, si, 'weight', kg)}
+                  onCommit={() => onSetBlur(gi, si)}
                 />
                 <input
                   className="set-col-reps"

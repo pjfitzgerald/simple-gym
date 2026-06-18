@@ -5,11 +5,13 @@ import TemplateList from './components/TemplateList.jsx'
 import LiveWorkout from './components/LiveWorkout.jsx'
 import WorkoutHistory from './components/WorkoutHistory.jsx'
 import MinimisedSessionBar from './components/MinimisedSessionBar.jsx'
+import Settings from './components/Settings.jsx'
 
 const TABS = [
   { id: 'templates', label: 'Templates' },
   { id: 'history', label: 'History' },
   { id: 'exercises', label: 'Exercises' },
+  { id: 'settings', label: 'Settings' },
 ]
 
 function formatStarted(iso) {
@@ -195,6 +197,7 @@ function App() {
           {tab === 'templates' && <TemplateList onStartWorkout={startWorkout} />}
           {tab === 'history' && <WorkoutHistory onResume={setActiveSession} />}
           {tab === 'exercises' && <ExerciseLibrary />}
+          {tab === 'settings' && <Settings />}
         </div>
       </main>
       {activeSession && minimised && (

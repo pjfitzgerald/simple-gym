@@ -78,9 +78,22 @@
   border-bottom: 1px solid var(--border);
 }
 
+.exercise-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .exercise-name {
   font-weight: 500;
   color: var(--text);
+}
+
+.exercise-pr {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Muscle-group badge, still used in workout history / pickers (no longer in

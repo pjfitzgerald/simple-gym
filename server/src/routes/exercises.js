@@ -17,14 +17,17 @@ router.get('/', (req, res) => {
   res.json(rows);
 });
 
-// GET /api/exercises/prs — personal records per exercise, derived from logged
-// sets: the heaviest weight ever lifted, with the best reps achieved at that
-// weight. A set with reps but no weight counts as bodyweight (0 kg), so
-// bodyweight exercises still earn a PR (most reps at 0 kg). Returns a map keyed
-// by exercise_id ({ weight, reps }). Pass ?exclude_session= to compute from
-// prior sessions only, so an in-progress workout shows the record it's trying
-// to beat rather than its own just-entered numbers. Must precede '/:id' so
-// 'prs' isn't treated as an id.
+// GET /api/exercises/prs — personal records per exercise. A PR is the heaviest
+// weight ever lifted, with the best reps achieved at that weight. A set with
+// reps but no weight counts as bodyweight (0 kg), so bodyweight exercises still
+// earn a PR (most reps at 0 kg). The user can also set a manual PR per exercise
+// (Settings tab); the displayed PR is the heavier of {manual override, best
+// logged set} — a heavier logged set still wins. Returns a map keyed by
+// exercise_id ({ weight, reps, manual }), where `manual` is true when the
+// manual override is what's being shown. Pass ?exclude_session= to compute the
+// logged side from prior sessions only, so an in-progress workout shows the
+// record it's trying to beat rather than its own just-entered numbers. Must
+// precede '/:id' so 'prs' isn't treated as an id.
 router.get('/prs', (req, res) => {
   const db = getDb();
   const exclude = req.query.exclude_session ?? null;
@@ -40,7 +43,19 @@ router.get('/prs', (req, res) => {
     ) WHERE rn = 1
   `).all(exclude, exclude);
   const map = {};
-  for (const r of rows) map[r.exercise_id] = { weight: r.weight, reps: r.reps };
+  for (const r of rows) map[r.exercise_id] = { weight: r.weight, reps: r.reps, manual: false };
+
+  // Merge in manual overrides: a manual PR wins only when it's heavier (or
+  // equal weight with more reps) than the logged best, matching how two logged
+  // sets are compared.
+  const manuals = db.prepare(
+    'SELECT id, manual_pr_weight AS weight, manual_pr_reps AS reps FROM exercises WHERE manual_pr_weight IS NOT NULL'
+  ).all();
+  for (const m of manuals) {
+    const cur = map[m.id];
+    const beats = !cur || m.weight > cur.weight || (m.weight === cur.weight && m.reps > cur.reps);
+    if (beats) map[m.id] = { weight: m.weight, reps: m.reps, manual: true };
+  }
   res.json(map);
 });
 
@@ -75,6 +90,41 @@ router.put('/:id', (req, res) => {
     .run(name ?? null, muscle_group ?? null, req.params.id);
   const updated = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
   res.json(updated);
+});
+
+// PUT /api/exercises/:id/pr — set a manual personal-record override (kg).
+// Stored on the exercise; the /prs endpoint shows it only when it beats the
+// best logged set. Reps must be a positive integer; weight a non-negative
+// number (0 = bodyweight).
+router.put('/:id/pr', (req, res) => {
+  const db = getDb();
+  const existing = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Exercise not found' });
+
+  const weight = Number(req.body.weight);
+  const reps = Number(req.body.reps);
+  if (!Number.isFinite(weight) || weight < 0) {
+    return res.status(400).json({ error: 'weight must be a non-negative number' });
+  }
+  if (!Number.isInteger(reps) || reps < 1) {
+    return res.status(400).json({ error: 'reps must be a positive integer' });
+  }
+
+  db.prepare('UPDATE exercises SET manual_pr_weight = ?, manual_pr_reps = ? WHERE id = ?')
+    .run(weight, reps, req.params.id);
+  res.json(db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id));
+});
+
+// DELETE /api/exercises/:id/pr — clear the manual override, reverting that
+// exercise's PR to its purely-derived value.
+router.delete('/:id/pr', (req, res) => {
+  const db = getDb();
+  const existing = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Exercise not found' });
+
+  db.prepare('UPDATE exercises SET manual_pr_weight = NULL, manual_pr_reps = NULL WHERE id = ?')
+    .run(req.params.id);
+  res.json(db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id));
 });
 
 // DELETE /api/exercises/:id — any exercise (built-in or custom). It's always

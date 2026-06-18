@@ -1,0 +1,113 @@
+.settings > h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.settings-section {
+  margin-top: 24px;
+}
+
+.settings-section h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.settings-hint {
+  margin: 2px 0 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Segmented control (kg/lbs, density) */
+.settings-segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.segmented-option {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.segmented-option.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* PR management */
+.settings-pr-search {
+  margin-bottom: 10px;
+}
+
+.settings-pr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-pr-row {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.settings-pr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.settings-pr-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-pr-name {
+  font-weight: 600;
+}
+
+.settings-pr-value {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.settings-pr-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.settings-pr-edit label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 90px;
+}
+
+.settings-pr-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}

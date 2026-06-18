@@ -6,6 +6,9 @@ export default function TemplateList({ onStartWorkout }) {
   const [templates, setTemplates] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
+  // Tapping Start opens a preview of the template's exercises first, so you can
+  // confirm the line-up before the session timer begins.
+  const [preview, setPreview] = useState(null)
 
   useEffect(() => {
     fetchTemplates()
@@ -26,6 +29,19 @@ export default function TemplateList({ onStartWorkout }) {
     const res = await fetch(`/api/templates/${template.id}`)
     setEditing(await res.json())
     setShowForm(true)
+  }
+
+  // Fetch the template's exercises and show the preview overlay rather than
+  // starting straight away.
+  async function openPreview(template) {
+    const res = await fetch(`/api/templates/${template.id}`)
+    setPreview(await res.json())
+  }
+
+  function startFromPreview() {
+    const id = preview.id
+    setPreview(null)
+    onStartWorkout(id)
   }
 
   function handleFormDone() {
@@ -68,7 +84,7 @@ export default function TemplateList({ onStartWorkout }) {
             <span className="template-meta">{t.exercise_count} exercise{t.exercise_count !== 1 ? 's' : ''}</span>
           </div>
           <div className="template-actions">
-            <button className="btn-primary btn-small" onClick={() => onStartWorkout(t.id)}>
+            <button className="btn-primary btn-small" onClick={() => openPreview(t)}>
               Start
             </button>
             <button
@@ -80,6 +96,38 @@ export default function TemplateList({ onStartWorkout }) {
           </div>
         </div>
       ))}
+
+      {preview && (
+        <div className="template-preview-backdrop" onClick={() => setPreview(null)}>
+          <div className="template-preview" onClick={e => e.stopPropagation()}>
+            <button
+              className="preview-close"
+              onClick={() => setPreview(null)}
+              aria-label="Close preview"
+            >✕</button>
+            <h2>{preview.name}</h2>
+            <p className="preview-meta">
+              {preview.exercises.length} exercise{preview.exercises.length !== 1 ? 's' : ''}
+            </p>
+            <div className="preview-exercises">
+              {preview.exercises.length === 0 && (
+                <p className="empty-state">No exercises in this template.</p>
+              )}
+              {preview.exercises.map(ex => (
+                <div key={ex.template_exercise_id} className="preview-exercise">
+                  <span className="preview-ex-name">{ex.name}</span>
+                  <span className="preview-ex-meta">
+                    {ex.default_sets} set{ex.default_sets !== 1 ? 's' : ''} · {ex.muscle_group}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button className="btn-primary preview-start" onClick={startFromPreview}>
+              Start workout
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

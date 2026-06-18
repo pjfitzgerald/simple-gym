@@ -67,3 +67,95 @@
   align-items: center;
   flex-shrink: 0;
 }
+/* Start-preview overlay: confirm a template's exercise line-up before the
+   session begins. ✕ (top-right) backs out; "Start workout" commits. */
+.template-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: end-prompt-fade 0.15s ease;
+}
+
+.template-preview {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 100%;
+  max-width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+
+.template-preview h2 {
+  margin: 0 4px 2px 0;
+  font-size: 20px;
+  padding-right: 28px;
+}
+
+.preview-meta {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.preview-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.preview-close:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.preview-exercises {
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-exercise {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.preview-ex-name {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.preview-ex-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.preview-start {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  font-weight: 600;
+}

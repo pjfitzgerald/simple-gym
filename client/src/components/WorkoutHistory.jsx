@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import WorkoutEdit from './WorkoutEdit.jsx'
+import { useSettings, formatWeight, unitLabel } from '../hooks/useSettings.jsx'
 import './WorkoutHistory.css'
 
 // The tab panes remount on every tab switch, so cache the last-fetched
@@ -9,6 +10,7 @@ import './WorkoutHistory.css'
 let sessionsCache = null
 
 export default function WorkoutHistory({ onResume }) {
+  const { unit } = useSettings()
   const [sessions, setSessions] = useState(sessionsCache ?? [])
   // Only trust an empty list once a fetch has actually completed, so the
   // empty-state message never shows during the initial load.
@@ -136,7 +138,7 @@ export default function WorkoutHistory({ onResume }) {
     const groups = order.map(k => grouped[k])
 
     return (
-      <div className="history-detail no-tab-swipe">
+      <div className="history-detail">
         <div className="detail-toolbar">
           <button className="btn-ghost" onClick={() => setDetail(null)}>Back</button>
           <div className="detail-toolbar-right">
@@ -168,7 +170,7 @@ export default function WorkoutHistory({ onResume }) {
                 <div key={set.id} className={`detail-set ${set.completed_at ? '' : 'skipped'}`}>
                   <span className="set-num">Set {set.set_number}</span>
                   {set.reps != null ? (
-                    <span className="set-data">{set.weight ?? 0} kg x {set.reps}</span>
+                    <span className="set-data">{formatWeight(set.weight ?? 0, unit)} {unitLabel(unit)} x {set.reps}</span>
                   ) : (
                     <span className="set-data skipped-text">—</span>
                   )}

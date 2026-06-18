@@ -28,6 +28,7 @@
   background: transparent;
   color: var(--text-secondary);
   font-weight: 500;
+  font-size: 14px;
   border-radius: 0;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
@@ -97,4 +98,55 @@
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+}
+
+/* Compact density (Settings → Display density): tighten spacing app-wide for a
+   denser, more information-rich layout. Comfortable is the default; this class
+   is toggled on <body> by the settings hook. */
+body.density-compact .app-header {
+  padding: 10px 0 10px;
+}
+
+body.density-compact .app-header h1 {
+  margin-bottom: 8px;
+  font-size: 24px;
+}
+
+body.density-compact .template-list,
+body.density-compact .exercise-library,
+body.density-compact .workout-history {
+  gap: 8px;
+}
+
+body.density-compact .template-card,
+body.density-compact .history-card {
+  padding: 10px 12px;
+}
+
+body.density-compact .exercise-item {
+  padding: 8px 0;
+}
+
+body.density-compact .live-workout {
+  gap: 12px;
+}
+
+body.density-compact .exercise-group {
+  padding: 10px;
+}
+
+body.density-compact .group-header-swipe {
+  margin-bottom: 6px;
+}
+
+body.density-compact .sets-row {
+  padding: 3px 0;
+}
+
+body.density-compact .sets-row input {
+  padding: 6px;
+}
+
+body.density-compact .detail-exercise {
+  margin-bottom: 12px;
 }

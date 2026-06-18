@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import ExerciseForm from './ExerciseForm.jsx'
 import { useCategories } from '../hooks/useCategories.js'
+import { useSettings, formatWeight, unitLabel } from '../hooks/useSettings.jsx'
 import './ExerciseLibrary.css'
 
 export default function ExerciseLibrary() {
   const { categories } = useCategories()
+  const { unit } = useSettings()
   const [exercises, setExercises] = useState([])
+  const [prs, setPrs] = useState({})
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -16,8 +19,12 @@ export default function ExerciseLibrary() {
   }, [])
 
   async function fetchExercises() {
-    const res = await fetch('/api/exercises')
-    setExercises(await res.json())
+    const [exRes, prRes] = await Promise.all([
+      fetch('/api/exercises'),
+      fetch('/api/exercises/prs'),
+    ])
+    setExercises(await exRes.json())
+    setPrs(await prRes.json())
   }
 
   async function handleDelete(exercise) {
@@ -53,9 +60,17 @@ export default function ExerciseLibrary() {
     .filter(section => section.items.length > 0)
 
   function renderItem(ex) {
+    const pr = prs[ex.id]
     return (
       <div key={ex.id} className="exercise-item">
-        <span className="exercise-name">{ex.name}</span>
+        <div className="exercise-item-info">
+          <span className="exercise-name">{ex.name}</span>
+          {pr && (
+            <span className="exercise-pr">
+              PR {formatWeight(pr.weight, unit)} {unitLabel(unit)} × {pr.reps}
+            </span>
+          )}
+        </div>
         <div className="exercise-actions">
           <button className="btn-ghost" onClick={() => handleEdit(ex)}>Edit</button>
           <button className="btn-ghost btn-danger" onClick={() => handleDelete(ex)}>Delete</button>
