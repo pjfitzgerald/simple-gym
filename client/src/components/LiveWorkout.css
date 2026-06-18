@@ -79,12 +79,23 @@
   transition: none;
 }
 
+/* Match #root's desktop widening so the running session isn't a narrow column
+   on a wide screen. */
+@media (min-width: 768px) {
+  .workout-sheet {
+    max-width: 880px;
+  }
+}
+
 @keyframes sheet-rise {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
 
-/* Grabber pill across the top of the sheet — drag it down to minimise. */
+/* Grabber pill across the top of the sheet — drag it down to minimise. This is
+   the touch affordance (iOS-sheet style); on desktop the header chevron button
+   does the job instead, so the pill is hidden there (dragging is awkward with a
+   mouse). */
 .sheet-grabber {
   display: flex;
   align-items: center;
@@ -97,6 +108,32 @@
 
 .sheet-grabber:active {
   cursor: grabbing;
+}
+
+@media (min-width: 768px) {
+  .sheet-grabber {
+    display: none;
+  }
+}
+
+/* Explicit minimise control in the header — a chevron-down button, the standard
+   "collapse this sheet" affordance. Always available (the drag pill is a
+   touch-only bonus), so it works with a mouse on desktop too. */
+.btn-minimise {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius);
+}
+
+.btn-minimise:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
 }
 
 .sheet-grabber-pill {
