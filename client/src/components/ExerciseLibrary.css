@@ -21,11 +21,14 @@
   width: 100%;
 }
 
-.filter-tabs {
+/* Scoped to the library so it doesn't collide with the LiveWorkout picker's
+   own `.filter-tabs` rule (which uses gap:0); the extra specificity also makes
+   this win regardless of CSS bundle order. */
+.exercise-library .filter-tabs {
   display: flex;
-  gap: 6px;
+  gap: 10px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding: 2px 0 6px;
   -webkit-overflow-scrolling: touch;
 }
 
