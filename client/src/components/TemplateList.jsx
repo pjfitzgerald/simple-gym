@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import TemplateForm from './TemplateForm.jsx'
 import './TemplateList.css'
 
@@ -97,7 +98,12 @@ export default function TemplateList({ onStartWorkout }) {
         </div>
       ))}
 
-      {preview && (
+      {/* Rendered via a portal to <body>: the modal is fixed-position, but its
+          natural home inside .tab-pane has an animation whose `both` fill keeps
+          a transform applied — which would make the tab-pane the containing
+          block for this fixed element (boxing it inside the pane, below the
+          sticky header) instead of the viewport. The portal escapes that. */}
+      {preview && createPortal(
         <div className="template-preview-backdrop" onClick={() => setPreview(null)}>
           <div className="template-preview" onClick={e => e.stopPropagation()}>
             <button
@@ -126,7 +132,8 @@ export default function TemplateList({ onStartWorkout }) {
               Start workout
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
