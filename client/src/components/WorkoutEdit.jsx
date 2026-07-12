@@ -53,6 +53,10 @@ function groupSets(flatSets, notes = {}) {
   return order.map(k => groups[k])
 }
 
+// Lock card reordering to the vertical axis so a dragged card can't wander
+// sideways past the container edge. See the note in LiveWorkout.jsx.
+const restrictToVerticalAxis = ({ transform }) => ({ ...transform, x: 0 })
+
 export default function WorkoutEdit({ session: initialSession, onClose }) {
   const { categories } = useCategories()
   const [session, setSession] = useState(initialSession)
@@ -298,7 +302,7 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
         {timesError && <p className="edit-times-error">{timesError}</p>}
       </section>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
         <SortableContext items={sets.map(g => g.exercise_id)} strategy={verticalListSortingStrategy}>
           {sets.map((group, gi) => (
             <SortableExerciseGroup

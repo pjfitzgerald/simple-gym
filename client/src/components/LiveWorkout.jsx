@@ -18,6 +18,13 @@ import SortableExerciseGroup from './SortableExerciseGroup.jsx'
 import { useCategories } from '../hooks/useCategories.js'
 import './LiveWorkout.css'
 
+// Lock card reordering to the vertical axis: without this a dragged card
+// follows the pointer sideways, and dragging right pushes it past the sheet's
+// edge — turning the sheet horizontally scrollable and letting dnd-kit
+// auto-scroll into empty space. Same as @dnd-kit/modifiers'
+// restrictToVerticalAxis, inlined to avoid adding the dependency.
+const restrictToVerticalAxis = ({ transform }) => ({ ...transform, x: 0 })
+
 export default function LiveWorkout({ session: initialSession, onEnd, onMinimise }) {
   const { categories } = useCategories()
   const [session] = useState(initialSession)
@@ -471,7 +478,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
         </div>
       </header>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
         <SortableContext items={sets.map(g => g.exercise_id)} strategy={verticalListSortingStrategy}>
           {sets.map((group, gi) => (
             <SortableExerciseGroup

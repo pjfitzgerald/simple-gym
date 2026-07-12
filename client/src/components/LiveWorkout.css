@@ -68,6 +68,10 @@
   max-width: 600px;
   margin: 0 auto;
   overflow-y: auto;
+  /* Never scroll/expand horizontally — a dragged card is clipped at the edge
+     rather than pushing the layout wider (belt-and-braces with the
+     vertical-axis drag lock). */
+  overflow-x: hidden;
   background: var(--bg);
   padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
   animation: sheet-rise 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
