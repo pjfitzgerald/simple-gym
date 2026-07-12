@@ -82,11 +82,6 @@ export default function SortableExerciseGroup({
             <h3>{group.exercise_name}</h3>
             <span className="group-muscle">{group.muscle_group}</span>
           </div>
-          {pr && (
-            <span className="group-pr" title="Personal record">
-              PR {formatWeight(pr.weight, unit)} {unitLabel(unit)} × {pr.reps}
-            </span>
-          )}
         </div>
         <button
           className="btn-remove-exercise"
@@ -132,7 +127,13 @@ export default function SortableExerciseGroup({
             <span className="set-col-num">Set</span>
             <span className="set-col-weight">Weight ({unitLabel(unit)})</span>
             <span className="set-col-reps">Reps</span>
-            <span className="set-col-actions"></span>
+            <span className="set-col-actions">
+              {pr && (
+                <span className="group-pr" title="Personal record">
+                  PR {formatWeight(pr.weight, unit)} {unitLabel(unit)} × {pr.reps}
+                </span>
+              )}
+            </span>
           </div>
 
           {group.sets.map((set, si) => {

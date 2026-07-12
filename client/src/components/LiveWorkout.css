@@ -84,6 +84,24 @@
 @media (min-width: 768px) {
   .workout-sheet {
     max-width: 880px;
+    /* Desktop shows a persistent scrollbar on the sheet, and the OS default
+       looks heavy/out of place here. Make it a subtle thin one. (Mobile keeps
+       its auto-hiding overlay scrollbar, which already looks fine.) */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .workout-sheet::-webkit-scrollbar {
+    width: 8px;
+  }
+  .workout-sheet::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .workout-sheet::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+  .workout-sheet::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
   }
 }
 
@@ -220,8 +238,11 @@
   text-transform: capitalize;
 }
 
-/* Personal record hint — deliberately understated, sits to the right of the
-   exercise name. The same record also seeds the set inputs' placeholders. */
+/* Personal record hint — deliberately understated. Sits at the right end of
+   the sets header row (in line with Set/Weight/Reps), right-aligned over the
+   actions column. The same record also seeds the set inputs' placeholders.
+   text-transform/letter-spacing are reset so it isn't uppercased by the
+   header row and reads "PR 100 kg × 5". */
 .group-pr {
   font-size: 11px;
   font-weight: 500;
@@ -229,6 +250,8 @@
   opacity: 0.7;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* End-workout choice: Save (default) / Discard / Return. A centered modal
