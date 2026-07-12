@@ -65,6 +65,17 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   const draggingRef = useRef(false)
   const sheetStartY = useRef(0)
 
+  // Auto-hide the desktop scrollbar: show it only while actively scrolling,
+  // clearing the flag ~0.7s after the last scroll event.
+  const [scrolling, setScrolling] = useState(false)
+  const scrollTimer = useRef(null)
+  useEffect(() => () => clearTimeout(scrollTimer.current), [])
+  function handleSheetScroll() {
+    setScrolling(true)
+    clearTimeout(scrollTimer.current)
+    scrollTimer.current = setTimeout(() => setScrolling(false), 700)
+  }
+
   // Long-press on the whole card starts a drag; quick taps fall through to
   // the inputs/buttons inside it. Tolerance lets a scroll gesture move on
   // without ever activating a drag.
@@ -428,8 +439,9 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
 
   return (
     <div
-      className={`live-workout workout-sheet${dragging ? ' is-dragging' : ''}${closing ? ' is-closing' : ''}`}
+      className={`live-workout workout-sheet${dragging ? ' is-dragging' : ''}${closing ? ' is-closing' : ''}${scrolling ? ' is-scrolling' : ''}`}
       style={sheetStyle}
+      onScroll={handleSheetScroll}
     >
       {onMinimise && (
         <div

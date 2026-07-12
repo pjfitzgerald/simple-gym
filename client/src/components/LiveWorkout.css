@@ -88,10 +88,14 @@
 @media (min-width: 768px) {
   .workout-sheet {
     max-width: 880px;
-    /* Desktop shows a persistent scrollbar on the sheet, and the OS default
-       looks heavy/out of place here. Make it a subtle thin one. (Mobile keeps
-       its auto-hiding overlay scrollbar, which already looks fine.) */
+    /* Subtle thin scrollbar that only shows while actively scrolling: the sheet
+       adds .is-scrolling on scroll and clears it ~0.7s later. The gutter width
+       stays reserved, so the thumb fading in/out never shifts content. (Mobile
+       keeps its native auto-hiding overlay scrollbar.) */
     scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .workout-sheet.is-scrolling {
     scrollbar-color: var(--border) transparent;
   }
   .workout-sheet::-webkit-scrollbar {
@@ -101,10 +105,14 @@
     background: transparent;
   }
   .workout-sheet::-webkit-scrollbar-thumb {
-    background: var(--border);
+    background: transparent;
     border-radius: 4px;
+    transition: background 0.3s ease;
   }
-  .workout-sheet::-webkit-scrollbar-thumb:hover {
+  .workout-sheet.is-scrolling::-webkit-scrollbar-thumb {
+    background: var(--border);
+  }
+  .workout-sheet.is-scrolling::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
   }
 }
