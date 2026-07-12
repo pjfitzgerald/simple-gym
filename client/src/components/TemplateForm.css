@@ -155,6 +155,34 @@
   border-radius: var(--radius);
 }
 
+/* Scoped to the picker so it matches the current Exercises-tab pill style
+   regardless of CSS bundle order (mirrors ExerciseLibrary.css, which has the
+   same collision with LiveWorkout.css's older unscoped `.filter-tab`). */
+.exercise-picker .filter-tabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 0 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.exercise-picker .filter-tab {
+  padding: 6px 14px;
+  font-size: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.exercise-picker .filter-tab.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .picker-list {
   display: flex;
   flex-direction: column;
@@ -205,6 +233,16 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Same treatment as the Exercises-tab category subheadings
+   (.exercise-section-title), just inline next to the exercise name. */
+.picker-item .picker-category {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
 }
 
 .picker-add-selected {

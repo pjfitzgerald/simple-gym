@@ -36,11 +36,10 @@ function WeightInput({ valueKg, prWeightKg, unit, onChangeKg, onCommit }) {
   )
 }
 
-// One exercise group. The shell is the @dnd-kit drag target (long-press the
-// card to reorder). Inside, a Swipeable lets you swipe the whole card left to
-// remove the exercise, and each set row is independently swipe-to-delete. The
-// inner row swipes stop propagation so a swipe that starts on a row deletes
-// that set rather than the whole card.
+// One exercise group. The header grip (name + PR) is the @dnd-kit drag handle
+// (long-press to reorder); an × button at the header's top-right removes the
+// exercise after a confirm. Each set row is independently swipe-to-delete (the
+// inner row swipes stop propagation so a swipe on a row deletes that set).
 // Used by both LiveWorkout and WorkoutEdit so the live and edit views match.
 export default function SortableExerciseGroup({
   group,
@@ -74,15 +73,11 @@ export default function SortableExerciseGroup({
       style={style}
       className={`exercise-group-shell exercise-group${isDragging ? ' is-dragging' : ''}`}
     >
-      {/* Only the header is the drag handle (long-press to reorder) and the
-          swipe-to-remove target. The sets list below is left free so a swipe
-          there deletes an individual set rather than the whole card. */}
-      <Swipeable
-        wrapperClassName="group-header-swipe"
-        actionLabel="Remove"
-        onDelete={() => onRemoveExercise(group.exercise_id)}
-      >
-        <div className="group-header" {...attributes} {...listeners}>
+      {/* Header. The grip (name + PR) carries the drag listeners — long-press
+          to reorder. The × button sits outside the grip so tapping it never
+          starts a drag; it confirms before removing the exercise. */}
+      <div className="group-header">
+        <div className="group-header-grip" {...attributes} {...listeners}>
           <div>
             <h3>{group.exercise_name}</h3>
             <span className="group-muscle">{group.muscle_group}</span>
@@ -93,7 +88,17 @@ export default function SortableExerciseGroup({
             </span>
           )}
         </div>
-      </Swipeable>
+        <button
+          className="btn-remove-exercise"
+          onClick={() => {
+            if (confirm(`Remove ${group.exercise_name} from this workout?`)) {
+              onRemoveExercise(group.exercise_id)
+            }
+          }}
+          aria-label={`Remove ${group.exercise_name}`}
+          title="Remove exercise"
+        >✕</button>
+      </div>
 
       {/* Optional free-text note for this exercise card. The button just
           reveals the textarea; the note persists on blur. A ✕ collapses it

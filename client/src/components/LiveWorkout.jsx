@@ -15,8 +15,6 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import SortableExerciseGroup from './SortableExerciseGroup.jsx'
-import UndoToast from './UndoToast.jsx'
-import { useUndoableRemoval } from '../hooks/useUndoableRemoval.js'
 import { useCategories } from '../hooks/useCategories.js'
 import './LiveWorkout.css'
 
@@ -52,9 +50,6 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   // Per-exercise personal records (heaviest weight + reps at it), from prior
   // sessions only — the benchmark shown grayed in each card while you train.
   const [prs, setPrs] = useState({})
-
-  // Swipe-to-remove an exercise opens an undo window before committing.
-  const removal = useUndoableRemoval(session.id, sets, setSets)
 
   // Drag-down-to-minimise (the grabber pill behaves like an iOS sheet handle).
   const [dragY, setDragY] = useState(0)
@@ -130,6 +125,14 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   async function deleteSet(setId) {
     await fetch(`/api/sessions/${session.id}/sets/${setId}`, { method: 'DELETE' })
     await refreshSets()
+  }
+
+  // Remove an exercise (and all its sets) from the session. The card's × button
+  // confirms first, so this commits straight away — optimistic locally, then
+  // the DELETE on the server.
+  async function removeExercise(exerciseId) {
+    setSets(prev => prev.filter(g => g.exercise_id !== exerciseId))
+    await fetch(`/api/sessions/${session.id}/exercises/${exerciseId}`, { method: 'DELETE' }).catch(() => {})
   }
 
   async function addSet(exerciseId) {
@@ -478,7 +481,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
               pr={prs[group.exercise_id]}
               onAddSet={addSet}
               onDeleteSet={deleteSet}
-              onRemoveExercise={removal.request}
+              onRemoveExercise={removeExercise}
               onSetChange={handleSetChange}
               onSetBlur={handleSetBlur}
               onToggleComplete={handleToggleComplete}
@@ -531,13 +534,6 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
 
       {sets.length === 0 && !showPicker && (
         <p className="empty-state">Tap "+ Add Exercise" to get started.</p>
-      )}
-
-      {removal.pending && (
-        <UndoToast
-          message={`Removed ${removal.pending.group.exercise_name}`}
-          onUndo={removal.undo}
-        />
       )}
 
       {showEndPrompt && (

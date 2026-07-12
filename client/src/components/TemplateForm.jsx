@@ -259,8 +259,9 @@ export default function TemplateForm({ template, onDone, onCancel }) {
                   disabled={alreadyAdded}
                 >
                   <span className="picker-check">{alreadyAdded ? '✓' : checked ? '☑' : '☐'}</span>
-                  <span className="picker-name">{ex.name}</span>
-                  <span className="exercise-group">{ex.muscle_group}</span>
+                  <span className="picker-name">
+                    {ex.name} |<span className="picker-category"> {ex.muscle_group}</span>
+                  </span>
                 </button>
               )
             })}

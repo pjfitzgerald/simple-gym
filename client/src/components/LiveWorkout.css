@@ -157,15 +157,21 @@
   padding: 14px;
 }
 
-/* The header is the drag handle (long-press to reorder) and swipe-to-remove
-   target. It carries the touch-action / user-select rules so @dnd-kit's
-   delay+tolerance can tell a held drag from a scroll, while the wrapping
-   Swipeable owns horizontal swipes. */
-.group-header-swipe {
+/* Header row: the grip (name + PR) on the left, the remove × on the right. */
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
-.group-header {
+/* The grip is the drag handle (long-press to reorder). It carries the
+   touch-action / user-select rules so @dnd-kit's delay+tolerance can tell a
+   held drag from a scroll. The × button lives outside it, so a tap on × never
+   starts a drag. */
+.group-header-grip {
+  flex: 1;
+  min-width: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -175,8 +181,30 @@
   -webkit-user-select: none;
 }
 
-.exercise-group-shell.is-dragging .group-header {
+.exercise-group-shell.is-dragging .group-header-grip {
   cursor: grabbing;
+}
+
+/* Remove-exercise button, top-right of the card. Confirms before deleting. */
+.btn-remove-exercise {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1;
+  border-radius: 50%;
+}
+
+.btn-remove-exercise:hover {
+  background: rgba(185, 28, 28, 0.1);
+  color: var(--danger);
 }
 
 .group-header h3 {

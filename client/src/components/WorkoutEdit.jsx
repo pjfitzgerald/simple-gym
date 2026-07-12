@@ -15,8 +15,6 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import SortableExerciseGroup from './SortableExerciseGroup.jsx'
-import UndoToast from './UndoToast.jsx'
-import { useUndoableRemoval } from '../hooks/useUndoableRemoval.js'
 import { useCategories } from '../hooks/useCategories.js'
 import './LiveWorkout.css'
 import './WorkoutEdit.css'
@@ -74,9 +72,6 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  // Swipe-to-remove an exercise opens an undo window before committing.
-  const removal = useUndoableRemoval(session.id, sets, setSets)
-
   useEffect(() => {
     fetch('/api/exercises').then(r => r.json()).then(setAllExercises)
   }, [])
@@ -101,6 +96,13 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
   async function deleteSet(setId) {
     await fetch(`/api/sessions/${session.id}/sets/${setId}`, { method: 'DELETE' })
     await refreshSets()
+  }
+
+  // Remove an exercise (and its sets) from the session. The card's × button
+  // confirms first, so this deletes straight away, then refreshes.
+  async function removeExercise(exerciseId) {
+    setSets(prev => prev.filter(g => g.exercise_id !== exerciseId))
+    await fetch(`/api/sessions/${session.id}/exercises/${exerciseId}`, { method: 'DELETE' }).catch(() => {})
   }
 
   async function addSet(exerciseId) {
@@ -305,7 +307,7 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
               gi={gi}
               onAddSet={addSet}
               onDeleteSet={deleteSet}
-              onRemoveExercise={removal.request}
+              onRemoveExercise={removeExercise}
               onSetChange={handleSetChange}
               onSetBlur={handleSetBlur}
               onToggleComplete={handleToggleComplete}
@@ -358,13 +360,6 @@ export default function WorkoutEdit({ session: initialSession, onClose }) {
 
       {sets.length === 0 && !showPicker && (
         <p className="empty-state">No exercises in this workout. Tap "+ Add Exercise" to add one.</p>
-      )}
-
-      {removal.pending && (
-        <UndoToast
-          message={`Removed ${removal.pending.group.exercise_name}`}
-          onUndo={removal.undo}
-        />
       )}
     </div>
   )
