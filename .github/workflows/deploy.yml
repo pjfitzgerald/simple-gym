@@ -20,7 +20,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_deploy deploy@VPS-TAILSCALE-IP bash << 'SCRIPT'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_deploy "deploy@${{ secrets.VPS_HOST }}" bash << 'SCRIPT'
           set -euo pipefail
           cd /srv/simple-gym
 

@@ -13,8 +13,8 @@ services:
       # with what the app shows, not UTC.
       - TZ=Australia/Melbourne
       # Auth email flows (verification + password reset links). RESEND_API_KEY
-      # comes from the untracked .env at the repo root.
-      - APP_URL=https://gym.EXAMPLE-TAILNET.ts.net
+      # and PROD_APP_URL come from the untracked .env at the repo root.
+      - APP_URL=${PROD_APP_URL:-http://localhost:3001}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
     restart: unless-stopped
 

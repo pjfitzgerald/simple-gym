@@ -24,9 +24,10 @@ services:
       # with what the app shows, not UTC.
       - TZ=Australia/Melbourne
       # Auth email flows. Tokens are exposed in API responses on staging so
-      # signup/reset are testable without a real inbox; RESEND_API_KEY comes
-      # from the untracked .env at the repo root (empty = mail skipped).
-      - APP_URL=https://gym-staging.EXAMPLE-TAILNET.ts.net
+      # signup/reset are testable without a real inbox; RESEND_API_KEY and
+      # STAGING_APP_URL come from the untracked .env at the repo root
+      # (empty RESEND_API_KEY = mail skipped).
+      - APP_URL=${STAGING_APP_URL:-http://localhost:3002}
       - EXPOSE_AUTH_TOKENS=true
       - RESEND_API_KEY=${RESEND_API_KEY:-}
     restart: unless-stopped

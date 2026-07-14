@@ -4,3 +4,9 @@ data/
 .env
 *.db
 scratch.md
+
+# Claude Code files stay local -- deliberately untracked (public repo)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+simple-gym-claude-code-prompt.md
