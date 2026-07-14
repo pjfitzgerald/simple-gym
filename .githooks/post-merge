@@ -3,10 +3,9 @@
 # Auto-deploy after a pull/merge, gated by branch. Mirror of post-commit --
 # covers the case where a branch is updated via `git pull` or `git merge`
 # rather than a local commit:
-#   main    -> scripts/deploy.sh          (prod,    :3001)
 #   staging -> scripts/deploy-staging.sh  (staging, :3002)
+#   main    -> nothing locally (prod = Railway, deploys on push to origin/main)
 # Any other branch does nothing. Deploys run detached. Watch progress with:
-#   tail -f data/deploy.log          (prod)
 #   tail -f data/deploy-staging.log  (staging)
 #
 branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
@@ -14,10 +13,11 @@ repo="$(git rev-parse --show-toplevel)"
 mkdir -p "$repo/data"
 
 case "$branch" in
-  main)
-    echo "post-merge -> deploying main to simple-gym PROD (log: data/deploy.log)"
-    nohup "$repo/scripts/deploy.sh" >> "$repo/data/deploy.log" 2>&1 &
-    ;;
+  # main no longer deploys locally: Railway (gym.optimisedthought.com) is
+  # prod and watches origin/main -- a `git push origin main` is the prod
+  # deploy. The T480 prod stack was retired 2026-07-14 (volume kept).
+  # To resurrect it: restore this case from git history and
+  # `docker compose -f docker-compose.prod.yml up -d --build`.
   staging)
     echo "post-merge -> deploying staging to simple-gym STAGING (log: data/deploy-staging.log)"
     nohup "$repo/scripts/deploy-staging.sh" >> "$repo/data/deploy-staging.log" 2>&1 &
