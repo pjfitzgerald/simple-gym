@@ -4,6 +4,17 @@ import { CSS } from '@dnd-kit/utilities'
 import Swipeable from './Swipeable.jsx'
 import { useSettings, formatWeight, displayToKg, unitLabel } from '../hooks/useSettings.jsx'
 
+// Tapping a set field highlights whatever is already in it, so the next
+// keystroke replaces the value instead of appending to it — no clearing taps
+// mid-workout. Deferred a frame because iOS Safari places its own caret after
+// focus, which would wipe a selection made synchronously in the handler.
+function selectOnFocus(e) {
+  const el = e.target
+  requestAnimationFrame(() => {
+    if (document.activeElement === el) el.select()
+  })
+}
+
 // Weight input that shows/accepts the active unit while the underlying value
 // stays in kg. A focus buffer holds the raw text being typed so converting
 // kg→display→string mid-keystroke can't mangle a partial decimal (e.g. "10.").
@@ -19,7 +30,7 @@ function WeightInput({ valueKg, prWeightKg, unit, onChangeKg, onCommit }) {
       inputMode="decimal"
       placeholder={placeholder}
       value={focused ? raw : display}
-      onFocus={() => { setRaw(display); setFocused(true) }}
+      onFocus={e => { setRaw(display); setFocused(true); selectOnFocus(e) }}
       onChange={e => {
         setRaw(e.target.value)
         const v = e.target.value ? parseFloat(e.target.value) : null
@@ -161,6 +172,7 @@ export default function SortableExerciseGroup({
                   inputMode="numeric"
                   placeholder={pr ? String(pr.reps) : 'reps'}
                   value={set.reps ?? ''}
+                  onFocus={selectOnFocus}
                   onChange={e => onSetChange(gi, si, 'reps', e.target.value ? parseInt(e.target.value) : null)}
                   onBlur={() => onSetBlur(gi, si)}
                   onKeyDown={e => {

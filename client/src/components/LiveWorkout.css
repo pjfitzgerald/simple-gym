@@ -56,9 +56,9 @@
 }
 
 /* The running session behaves like an iOS sheet: a fixed full-screen overlay
-   that rises into place on mount and can be dragged down by the grabber to
-   minimise. Being an overlay (rather than its own screen) means the tabs stay
-   mounted underneath, so dragging down reveals them instantly with no reload.
+   that rises into place on mount and is minimised by the header chevron. Being
+   an overlay (rather than its own screen) means the tabs stay mounted
+   underneath, so minimising reveals them instantly with no reload.
    Padding / max-width / centering mirror #root so the content lays out the
    same as the rest of the app. */
 .workout-sheet {
@@ -79,9 +79,11 @@
   will-change: transform;
 }
 
+/* Paired with the disabled drag-to-minimise gesture:
 .workout-sheet.is-dragging {
   transition: none;
 }
+*/
 
 /* Match #root's desktop widening so the running session isn't a narrow column
    on a wide screen. */
@@ -122,10 +124,11 @@
   to   { transform: translateY(0); }
 }
 
-/* Grabber pill across the top of the sheet — drag it down to minimise. This is
-   the touch affordance (iOS-sheet style); on desktop the header chevron button
-   does the job instead, so the pill is hidden there (dragging is awkward with a
-   mouse). */
+/* Grabber pill across the top of the sheet — dragged down to minimise. Disabled
+   2026-07-14: the header chevron below does the same job in one tap, on touch
+   and mouse alike, so the drag gesture (and its pill) is redundant. Kept
+   commented, with the JSX in LiveWorkout.jsx, in case we want it back.
+
 .sheet-grabber {
   display: flex;
   align-items: center;
@@ -146,9 +149,17 @@
   }
 }
 
-/* Explicit minimise control in the header — a chevron-down button, the standard
-   "collapse this sheet" affordance. Always available (the drag pill is a
-   touch-only bonus), so it works with a mouse on desktop too. */
+.sheet-grabber-pill {
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+}
+*/
+
+/* The minimise control — a chevron-down button in the header, the standard
+   "collapse this sheet" affordance. The only way to minimise the sheet, and it
+   works with touch and mouse alike. */
 .btn-minimise {
   display: inline-flex;
   align-items: center;
@@ -164,13 +175,6 @@
 .btn-minimise:hover {
   background: var(--accent-bg);
   color: var(--accent);
-}
-
-.sheet-grabber-pill {
-  width: 40px;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--border);
 }
 
 /* The shell is the sortable item that translates while dragging; the card

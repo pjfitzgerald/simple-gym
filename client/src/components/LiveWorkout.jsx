@@ -58,12 +58,14 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
   // sessions only — the benchmark shown grayed in each card while you train.
   const [prs, setPrs] = useState({})
 
-  // Drag-down-to-minimise (the grabber pill behaves like an iOS sheet handle).
-  const [dragY, setDragY] = useState(0)
-  const [dragging, setDragging] = useState(false)
-  const [closing, setClosing] = useState(false)
-  const draggingRef = useRef(false)
-  const sheetStartY = useRef(0)
+  // Drag-down-to-minimise (grabber pill, iOS-sheet style) — disabled 2026-07-14
+  // now that the header chevron does the same job in one tap. Kept commented in
+  // case we want the gesture back.
+  // const [dragY, setDragY] = useState(0)
+  // const [dragging, setDragging] = useState(false)
+  // const [closing, setClosing] = useState(false)
+  // const draggingRef = useRef(false)
+  // const sheetStartY = useRef(0)
 
   // Auto-hide the desktop scrollbar: show it only while actively scrolling,
   // clearing the flag ~0.7s after the last scroll event.
@@ -200,33 +202,34 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     persistOrder(reordered)
   }
 
-  // Grabber drag handlers: follow the finger down, and minimise if released
-  // past the threshold (otherwise spring back to the top).
-  function onGrabDown(e) {
-    if (!onMinimise) return
-    draggingRef.current = true
-    setDragging(true)
-    sheetStartY.current = e.clientY
-    e.currentTarget.setPointerCapture?.(e.pointerId)
-  }
-
-  function onGrabMove(e) {
-    if (!draggingRef.current) return
-    setDragY(Math.max(0, e.clientY - sheetStartY.current))
-  }
-
-  function onGrabUp() {
-    if (!draggingRef.current) return
-    draggingRef.current = false
-    setDragging(false)
-    const threshold = Math.min(160, window.innerHeight * 0.25)
-    if (dragY > threshold) {
-      setClosing(true) // CSS transitions the sheet fully off-screen
-      setTimeout(() => onMinimise(), 300)
-    } else {
-      setDragY(0)
-    }
-  }
+  // Grabber drag handlers (disabled — see the state block above): follow the
+  // finger down, and minimise if released past the threshold (otherwise spring
+  // back to the top).
+  // function onGrabDown(e) {
+  //   if (!onMinimise) return
+  //   draggingRef.current = true
+  //   setDragging(true)
+  //   sheetStartY.current = e.clientY
+  //   e.currentTarget.setPointerCapture?.(e.pointerId)
+  // }
+  //
+  // function onGrabMove(e) {
+  //   if (!draggingRef.current) return
+  //   setDragY(Math.max(0, e.clientY - sheetStartY.current))
+  // }
+  //
+  // function onGrabUp() {
+  //   if (!draggingRef.current) return
+  //   draggingRef.current = false
+  //   setDragging(false)
+  //   const threshold = Math.min(160, window.innerHeight * 0.25)
+  //   if (dragY > threshold) {
+  //     setClosing(true) // CSS transitions the sheet fully off-screen
+  //     setTimeout(() => onMinimise(), 300)
+  //   } else {
+  //     setDragY(0)
+  //   }
+  // }
 
   // "Save" in the End prompt: stop the timer, end the session, then run the
   // template follow-up (save-as-new for ad-hoc, update for template-based).
@@ -431,18 +434,19 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     )
   }
 
-  const sheetStyle = closing
-    ? { transform: 'translateY(100vh)' }
-    : dragging || dragY
-      ? { transform: `translateY(${dragY}px)` }
-      : undefined
+  // Drag-to-minimise sheet transform (disabled with the grabber):
+  // const sheetStyle = closing
+  //   ? { transform: 'translateY(100vh)' }
+  //   : dragging || dragY
+  //     ? { transform: `translateY(${dragY}px)` }
+  //     : undefined
 
   return (
     <div
-      className={`live-workout workout-sheet${dragging ? ' is-dragging' : ''}${closing ? ' is-closing' : ''}${scrolling ? ' is-scrolling' : ''}`}
-      style={sheetStyle}
+      className={`live-workout workout-sheet${scrolling ? ' is-scrolling' : ''}`}
       onScroll={handleSheetScroll}
     >
+      {/* Grabber pill — disabled 2026-07-14, superseded by the header chevron.
       {onMinimise && (
         <div
           className="sheet-grabber"
@@ -463,6 +467,7 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
           <span className="sheet-grabber-pill" />
         </div>
       )}
+      */}
       <header className="app-header workout-header">
         <div className="workout-header-row">
           <div>
