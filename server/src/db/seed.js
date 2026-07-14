@@ -14,6 +14,10 @@ const EXERCISES = [
   { name: 'Dumbbell Flyes', muscle_group: 'chest' },
   { name: 'Cable Crossover', muscle_group: 'chest' },
   { name: 'Dips (Chest)', muscle_group: 'chest' },
+  { name: 'Push-Up', muscle_group: 'chest' },
+  { name: 'Machine Chest Press', muscle_group: 'chest' },
+  { name: 'Pec Deck', muscle_group: 'chest' },
+  { name: 'Decline Bench Press', muscle_group: 'chest' },
 
   // Back
   { name: 'Barbell Row', muscle_group: 'back' },
@@ -24,6 +28,10 @@ const EXERCISES = [
   { name: 'Dumbbell Row', muscle_group: 'back' },
   { name: 'T-Bar Row', muscle_group: 'back' },
   { name: 'Face Pull', muscle_group: 'back' },
+  { name: 'Chest-Supported Row', muscle_group: 'back' },
+  { name: 'Straight-Arm Pulldown', muscle_group: 'back' },
+  { name: 'Back Extension', muscle_group: 'back' },
+  { name: 'Shrug', muscle_group: 'back' },
 
   // Legs
   { name: 'Barbell Squat', muscle_group: 'legs' },
@@ -35,6 +43,11 @@ const EXERCISES = [
   { name: 'Leg Extension', muscle_group: 'legs' },
   { name: 'Bulgarian Split Squat', muscle_group: 'legs' },
   { name: 'Calf Raise', muscle_group: 'legs' },
+  { name: 'Hip Thrust', muscle_group: 'legs' },
+  { name: 'Walking Lunge', muscle_group: 'legs' },
+  { name: 'Goblet Squat', muscle_group: 'legs' },
+  { name: 'Hack Squat', muscle_group: 'legs' },
+  { name: 'Seated Calf Raise', muscle_group: 'legs' },
 
   // Shoulders
   { name: 'Overhead Press', muscle_group: 'shoulders' },
@@ -43,6 +56,9 @@ const EXERCISES = [
   { name: 'Front Raise', muscle_group: 'shoulders' },
   { name: 'Reverse Flyes', muscle_group: 'shoulders' },
   { name: 'Arnold Press', muscle_group: 'shoulders' },
+  { name: 'Cable Lateral Raise', muscle_group: 'shoulders' },
+  { name: 'Machine Shoulder Press', muscle_group: 'shoulders' },
+  { name: 'Upright Row', muscle_group: 'shoulders' },
 
   // Arms
   { name: 'Barbell Curl', muscle_group: 'arms' },
@@ -52,12 +68,23 @@ const EXERCISES = [
   { name: 'Overhead Tricep Extension', muscle_group: 'arms' },
   { name: 'Skull Crusher', muscle_group: 'arms' },
   { name: 'Dips (Tricep)', muscle_group: 'arms' },
+  { name: 'Preacher Curl', muscle_group: 'arms' },
+  { name: 'Concentration Curl', muscle_group: 'arms' },
+  { name: 'Cable Curl', muscle_group: 'arms' },
+  { name: 'Close-Grip Bench Press', muscle_group: 'arms' },
+  { name: 'Tricep Kickback', muscle_group: 'arms' },
 
   // Core
   { name: 'Plank', muscle_group: 'core' },
   { name: 'Hanging Leg Raise', muscle_group: 'core' },
   { name: 'Cable Crunch', muscle_group: 'core' },
   { name: 'Ab Wheel Rollout', muscle_group: 'core' },
+  { name: 'Crunch', muscle_group: 'core' },
+  { name: 'Sit-Up', muscle_group: 'core' },
+  { name: 'Russian Twist', muscle_group: 'core' },
+  { name: 'Side Plank', muscle_group: 'core' },
+  { name: 'Bicycle Crunch', muscle_group: 'core' },
+  { name: 'Dead Bug', muscle_group: 'core' },
 ];
 
 // Give a user the default categories, plus the seed exercise library if they
