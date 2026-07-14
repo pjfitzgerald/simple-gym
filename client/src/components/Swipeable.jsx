@@ -52,6 +52,9 @@ export default function Swipeable({
       }
     }
     if (axis.current === 'h') {
+      // Note: this does not stop the browser scrolling — that's the job of
+      // `touch-action: pan-y` on .swipeable-content. It only suppresses
+      // text-selection / drag defaults.
       e.preventDefault()
       setDx(Math.min(0, ddx)) // left-only
     }

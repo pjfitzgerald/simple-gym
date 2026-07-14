@@ -25,9 +25,19 @@
 }
 
 /* Foreground sits above the action layer and must be opaque so the red only
-   shows in the gap it leaves behind as it slides left. */
+   shows in the gap it leaves behind as it slides left.
+
+   `touch-action: pan-y` is what makes the swipe work on touch at all: it hands
+   vertical panning to the browser (so the sheet still scrolls) while reserving
+   horizontal movement for us. Without it the browser owns gesture
+   disambiguation and cancels our pointer stream mid-swipe — and preventDefault()
+   on a pointermove can't stop that, since scrolling is governed by touch-action,
+   not by the pointer event's default action. Chrome/Android took the gesture;
+   desktop mice never hit the code path, which is why this only showed on the
+   phone. */
 .swipeable-content {
   position: relative;
+  touch-action: pan-y;
 }
 
 .swipeable-content.sets-row {
