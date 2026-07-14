@@ -4,22 +4,23 @@ import { getDb } from '../db/database.js';
 const router = Router();
 
 // GET /api/templates — list all
-router.get('/', (_req, res) => {
+router.get('/', (req, res) => {
   const db = getDb();
   const templates = db.prepare(`
     SELECT t.*, COUNT(te.id) as exercise_count
     FROM templates t
     LEFT JOIN template_exercises te ON te.template_id = t.id
+    WHERE t.user_id = ?
     GROUP BY t.id
     ORDER BY t.updated_at DESC
-  `).all();
+  `).all(req.userId);
   res.json(templates);
 });
 
 // GET /api/templates/:id — get with exercises
 router.get('/:id', (req, res) => {
   const db = getDb();
-  const template = db.prepare('SELECT * FROM templates WHERE id = ?').get(req.params.id);
+  const template = db.prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!template) return res.status(404).json({ error: 'Template not found' });
 
   template.exercises = db.prepare(`
@@ -41,7 +42,7 @@ router.post('/', (req, res) => {
   if (!name?.trim()) return res.status(400).json({ error: 'name is required' });
 
   const now = new Date().toISOString();
-  const result = db.prepare('INSERT INTO templates (name, created_at, updated_at) VALUES (?, ?, ?)').run(name.trim(), now, now);
+  const result = db.prepare('INSERT INTO templates (user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)').run(req.userId, name.trim(), now, now);
   const templateId = result.lastInsertRowid;
 
   if (exercises?.length) {
@@ -71,7 +72,7 @@ router.post('/', (req, res) => {
 // PUT /api/templates/:id — update name and/or exercises
 router.put('/:id', (req, res) => {
   const db = getDb();
-  const template = db.prepare('SELECT * FROM templates WHERE id = ?').get(req.params.id);
+  const template = db.prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!template) return res.status(404).json({ error: 'Template not found' });
 
   const { name, exercises } = req.body;
@@ -94,7 +95,7 @@ router.put('/:id', (req, res) => {
   }
 
   // Return updated template
-  const updated = db.prepare('SELECT * FROM templates WHERE id = ?').get(req.params.id);
+  const updated = db.prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   updated.exercises = db.prepare(`
     SELECT te.id as template_exercise_id, te.default_sets, te.sort_order,
            e.id, e.name, e.muscle_group
@@ -110,7 +111,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/templates/:id
 router.delete('/:id', (req, res) => {
   const db = getDb();
-  const template = db.prepare('SELECT * FROM templates WHERE id = ?').get(req.params.id);
+  const template = db.prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!template) return res.status(404).json({ error: 'Template not found' });
 
   db.prepare('DELETE FROM templates WHERE id = ?').run(req.params.id);

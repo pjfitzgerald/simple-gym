@@ -78,16 +78,32 @@ async function postAuth(path, body) {
   return data
 }
 
-// Whether first-run setup is still needed (no account exists yet).
-export async function needsSetup() {
-  const res = await fetch('/api/auth/status')
-  if (!res.ok) return false
-  return (await res.json()).needs_setup
+// Create an account. Login stays blocked until the emailed verification link
+// is clicked. The returned verification_token is only present when the server
+// exposes tokens (dev/staging), letting the UI offer a click-through that
+// bypasses email delivery.
+export async function signup(email, password) {
+  const data = await postAuth('signup', { email, password })
+  return { message: data.message, verification_token: data.verification_token }
 }
 
-// Create the single account (first run only); persists the returned JWT.
-export async function setup(email, password) {
-  const data = await postAuth('setup', { email, password })
+// Emailed-link target: verifies the address and logs straight in.
+export async function verifyEmail(token) {
+  const data = await postAuth('verify', { token })
+  setToken(data.token)
+  return data.user
+}
+
+// Request a password-reset email. The API answers identically whether or not
+// the address has an account, so this never reveals account existence.
+export async function requestPasswordReset(email) {
+  const data = await postAuth('request_password_reset', { email })
+  return { message: data.message, reset_token: data.reset_token }
+}
+
+// Emailed-link target: sets a new password and logs straight in.
+export async function resetPassword(token, password) {
+  const data = await postAuth('reset_password', { token, password })
   setToken(data.token)
   return data.user
 }

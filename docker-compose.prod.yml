@@ -12,6 +12,10 @@ services:
       # Match the host zone so date formatting (e.g. the CSV export) lines up
       # with what the app shows, not UTC.
       - TZ=Australia/Melbourne
+      # Auth email flows (verification + password reset links). RESEND_API_KEY
+      # comes from the untracked .env at the repo root.
+      - APP_URL=https://gym.EXAMPLE-TAILNET.ts.net
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
     restart: unless-stopped
 
 volumes:

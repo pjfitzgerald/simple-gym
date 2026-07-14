@@ -1,3 +1,10 @@
+// Per-user starter data, copied in at signup (there is no global library:
+// every exercise/category row belongs to a user). The first-ever account
+// instead adopts all pre-multi-user rows — see routes/auth.js — and only
+// gets these seeds if that adoption found nothing.
+
+export const DEFAULT_CATEGORIES = ['chest', 'back', 'legs', 'shoulders', 'arms', 'core'];
+
 const EXERCISES = [
   // Chest
   { name: 'Barbell Bench Press', muscle_group: 'chest' },
@@ -53,17 +60,16 @@ const EXERCISES = [
   { name: 'Ab Wheel Rollout', muscle_group: 'core' },
 ];
 
-export function seed(db) {
-  const count = db.prepare('SELECT COUNT(*) as count FROM exercises WHERE is_custom = 0').get().count;
-  if (count > 0) return; // Already seeded
+// Give a user the default categories, plus the seed exercise library if they
+// have no exercises (i.e. they didn't adopt an existing one). Runs inside the
+// caller's transaction.
+export function seedUser(db, userId) {
+  const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (user_id, name) VALUES (?, ?)');
+  for (const name of DEFAULT_CATEGORIES) insertCategory.run(userId, name);
 
-  const insert = db.prepare('INSERT INTO exercises (name, muscle_group, is_custom) VALUES (?, ?, 0)');
-  const insertMany = db.transaction((exercises) => {
-    for (const ex of exercises) {
-      insert.run(ex.name, ex.muscle_group);
-    }
-  });
+  const count = db.prepare('SELECT COUNT(*) AS n FROM exercises WHERE user_id = ?').get(userId).n;
+  if (count > 0) return;
 
-  insertMany(EXERCISES);
-  console.log(`Seeded ${EXERCISES.length} exercises`);
+  const insert = db.prepare('INSERT INTO exercises (user_id, name, muscle_group, is_custom) VALUES (?, ?, ?, 0)');
+  for (const ex of EXERCISES) insert.run(userId, ex.name, ex.muscle_group);
 }

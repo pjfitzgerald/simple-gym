@@ -2,7 +2,6 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { seed } from './seed.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../../data/simple-gym.db');
@@ -28,7 +27,8 @@ export function initDb() {
   db.pragma('foreign_keys = ON');
 
   runMigrations();
-  seed(db);
+  // No boot-time seeding: exercise/category data is per-user, copied in at
+  // signup (see db/seed.js seedUser).
 
   console.log(`Database initialized at ${DB_PATH}`);
   return db;

@@ -9,11 +9,11 @@ router.get('/', (req, res) => {
   const { muscle_group } = req.query;
 
   if (muscle_group) {
-    const rows = db.prepare('SELECT * FROM exercises WHERE muscle_group = ? AND archived = 0 ORDER BY name').all(muscle_group);
+    const rows = db.prepare('SELECT * FROM exercises WHERE user_id = ? AND muscle_group = ? AND archived = 0 ORDER BY name').all(req.userId, muscle_group);
     return res.json(rows);
   }
 
-  const rows = db.prepare('SELECT * FROM exercises WHERE archived = 0 ORDER BY name').all();
+  const rows = db.prepare('SELECT * FROM exercises WHERE user_id = ? AND archived = 0 ORDER BY name').all(req.userId);
   res.json(rows);
 });
 
@@ -39,9 +39,10 @@ router.get('/prs', (req, res) => {
              ) AS rn
       FROM session_sets
       WHERE reps IS NOT NULL AND reps > 0
+        AND session_id IN (SELECT id FROM sessions WHERE user_id = ?)
         AND (? IS NULL OR session_id != ?)
     ) WHERE rn = 1
-  `).all(exclude, exclude);
+  `).all(req.userId, exclude, exclude);
   const map = {};
   for (const r of rows) map[r.exercise_id] = { weight: r.weight, reps: r.reps, manual: false };
 
@@ -49,8 +50,8 @@ router.get('/prs', (req, res) => {
   // equal weight with more reps) than the logged best, matching how two logged
   // sets are compared.
   const manuals = db.prepare(
-    'SELECT id, manual_pr_weight AS weight, manual_pr_reps AS reps FROM exercises WHERE manual_pr_weight IS NOT NULL'
-  ).all();
+    'SELECT id, manual_pr_weight AS weight, manual_pr_reps AS reps FROM exercises WHERE user_id = ? AND manual_pr_weight IS NOT NULL'
+  ).all(req.userId);
   for (const m of manuals) {
     const cur = map[m.id];
     const beats = !cur || m.weight > cur.weight || (m.weight === cur.weight && m.reps > cur.reps);
@@ -62,7 +63,7 @@ router.get('/prs', (req, res) => {
 // GET /api/exercises/:id
 router.get('/:id', (req, res) => {
   const db = getDb();
-  const row = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
+  const row = db.prepare('SELECT * FROM exercises WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!row) return res.status(404).json({ error: 'Exercise not found' });
   res.json(row);
 });
@@ -74,7 +75,7 @@ router.post('/', (req, res) => {
   if (!name || !muscle_group) {
     return res.status(400).json({ error: 'name and muscle_group are required' });
   }
-  const result = db.prepare('INSERT INTO exercises (name, muscle_group, is_custom) VALUES (?, ?, 1)').run(name, muscle_group);
+  const result = db.prepare('INSERT INTO exercises (user_id, name, muscle_group, is_custom) VALUES (?, ?, ?, 1)').run(req.userId, name, muscle_group);
   const exercise = db.prepare('SELECT * FROM exercises WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(exercise);
 });
@@ -82,13 +83,13 @@ router.post('/', (req, res) => {
 // PUT /api/exercises/:id
 router.put('/:id', (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
+  const existing = db.prepare('SELECT * FROM exercises WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!existing) return res.status(404).json({ error: 'Exercise not found' });
 
   const { name, muscle_group } = req.body;
   db.prepare('UPDATE exercises SET name = COALESCE(?, name), muscle_group = COALESCE(?, muscle_group) WHERE id = ?')
     .run(name ?? null, muscle_group ?? null, req.params.id);
-  const updated = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
+  const updated = db.prepare('SELECT * FROM exercises WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   res.json(updated);
 });
 
@@ -98,7 +99,7 @@ router.put('/:id', (req, res) => {
 // number (0 = bodyweight).
 router.put('/:id/pr', (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
+  const existing = db.prepare('SELECT * FROM exercises WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!existing) return res.status(404).json({ error: 'Exercise not found' });
 
   const weight = Number(req.body.weight);
@@ -112,19 +113,19 @@ router.put('/:id/pr', (req, res) => {
 
   db.prepare('UPDATE exercises SET manual_pr_weight = ?, manual_pr_reps = ? WHERE id = ?')
     .run(weight, reps, req.params.id);
-  res.json(db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id));
+  res.json(db.prepare('SELECT * FROM exercises WHERE id = ? AND user_id = ?').get(req.params.id, req.userId));
 });
 
 // DELETE /api/exercises/:id/pr — clear the manual override, reverting that
 // exercise's PR to its purely-derived value.
 router.delete('/:id/pr', (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
+  const existing = db.prepare('SELECT * FROM exercises WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!existing) return res.status(404).json({ error: 'Exercise not found' });
 
   db.prepare('UPDATE exercises SET manual_pr_weight = NULL, manual_pr_reps = NULL WHERE id = ?')
     .run(req.params.id);
-  res.json(db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id));
+  res.json(db.prepare('SELECT * FROM exercises WHERE id = ? AND user_id = ?').get(req.params.id, req.userId));
 });
 
 // DELETE /api/exercises/:id — any exercise (built-in or custom). It's always
@@ -133,7 +134,7 @@ router.delete('/:id/pr', (req, res) => {
 // still renders; otherwise the row is hard-deleted.
 router.delete('/:id', (req, res) => {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM exercises WHERE id = ?').get(req.params.id);
+  const existing = db.prepare('SELECT * FROM exercises WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!existing) return res.status(404).json({ error: 'Exercise not found' });
 
   const inHistory =

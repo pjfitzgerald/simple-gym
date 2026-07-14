@@ -51,7 +51,7 @@ function notesMap(db, sessionId) {
 }
 
 // GET /api/sessions — list past sessions
-router.get('/', (_req, res) => {
+router.get('/', (req, res) => {
   const db = getDb();
   const sessions = db.prepare(`
     SELECT s.*, t.name as template_name,
@@ -59,25 +59,26 @@ router.get('/', (_req, res) => {
     FROM sessions s
     LEFT JOIN templates t ON t.id = s.template_id
     LEFT JOIN session_sets ss ON ss.session_id = s.id
+    WHERE s.user_id = ?
     GROUP BY s.id
     ORDER BY s.started_at DESC
-  `).all();
+  `).all(req.userId);
   res.json(sessions);
 });
 
 // GET /api/sessions/active — the most recent in-progress session, or null.
 // Lets the app recover a workout after the PWA is closed or reloaded.
 // NOTE: must be declared before '/:id' so 'active' is not treated as an id.
-router.get('/active', (_req, res) => {
+router.get('/active', (req, res) => {
   const db = getDb();
   const session = db.prepare(`
     SELECT s.*, t.name as template_name
     FROM sessions s
     LEFT JOIN templates t ON t.id = s.template_id
-    WHERE s.ended_at IS NULL
+    WHERE s.ended_at IS NULL AND s.user_id = ?
     ORDER BY s.started_at DESC
     LIMIT 1
-  `).get();
+  `).get(req.userId);
   if (!session) return res.json(null);
 
   session.sets = db.prepare(SETS_QUERY).all(session.id);
@@ -88,7 +89,7 @@ router.get('/active', (_req, res) => {
 // GET /api/sessions/export — full workout history as a CSV download, one row
 // per logged set (sessions with no sets still get a single row). Declared
 // before '/:id' so 'export' isn't parsed as a session id.
-router.get('/export', (_req, res) => {
+router.get('/export', (req, res) => {
   const db = getDb();
   const rows = db.prepare(`
     SELECT s.id as session_id, s.started_at, s.ended_at, s.duration_seconds,
@@ -99,10 +100,11 @@ router.get('/export', (_req, res) => {
     LEFT JOIN templates t ON t.id = s.template_id
     LEFT JOIN session_sets ss ON ss.session_id = s.id
     LEFT JOIN exercises e ON e.id = ss.exercise_id
+    WHERE s.user_id = ?
     ORDER BY s.started_at DESC, ss.sort_order, ss.set_number
-  `).all();
+  `).all(req.userId);
 
-  const noteRows = db.prepare('SELECT session_id, exercise_id, notes FROM session_exercise_notes').all();
+  const noteRows = db.prepare('SELECT session_id, exercise_id, notes FROM session_exercise_notes WHERE session_id IN (SELECT id FROM sessions WHERE user_id = ?)').all(req.userId);
   const notes = {};
   for (const n of noteRows) notes[`${n.session_id}:${n.exercise_id}`] = n.notes;
 
@@ -179,7 +181,8 @@ router.post('/import', (req, res) => {
   const existing = db.prepare(`
     SELECT s.started_at, COALESCE(t.name, 'Blank Workout') AS workout
     FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
-  `).all();
+    WHERE s.user_id = ?
+  `).all(req.userId);
   const seen = new Set(existing.map(s => `${fmtDate(s.started_at)}|${fmtTime(s.started_at)}|${s.workout}`));
 
   // Group data rows into sessions by date+start+workout (the export's identity),
@@ -196,11 +199,11 @@ router.post('/import', (req, res) => {
     groups.get(key).rows.push(row);
   }
 
-  const findExercise = db.prepare('SELECT id FROM exercises WHERE name = ? COLLATE NOCASE LIMIT 1');
-  const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name) VALUES (?)');
-  const insertExercise = db.prepare('INSERT INTO exercises (name, muscle_group, is_custom) VALUES (?, ?, 1)');
-  const findTemplate = db.prepare('SELECT id FROM templates WHERE name = ? COLLATE NOCASE LIMIT 1');
-  const insertSession = db.prepare('INSERT INTO sessions (template_id, started_at, ended_at, duration_seconds) VALUES (?, ?, ?, ?)');
+  const findExercise = db.prepare('SELECT id FROM exercises WHERE user_id = ? AND name = ? COLLATE NOCASE LIMIT 1');
+  const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (user_id, name) VALUES (?, ?)');
+  const insertExercise = db.prepare('INSERT INTO exercises (user_id, name, muscle_group, is_custom) VALUES (?, ?, ?, 1)');
+  const findTemplate = db.prepare('SELECT id FROM templates WHERE user_id = ? AND name = ? COLLATE NOCASE LIMIT 1');
+  const insertSession = db.prepare('INSERT INTO sessions (user_id, template_id, started_at, ended_at, duration_seconds) VALUES (?, ?, ?, ?, ?)');
   const insertSet = db.prepare('INSERT INTO session_sets (session_id, exercise_id, set_number, weight, reps, completed_at, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
   const upsertNote = db.prepare(`
     INSERT INTO session_exercise_notes (session_id, exercise_id, notes) VALUES (?, ?, ?)
@@ -212,11 +215,11 @@ router.post('/import', (req, res) => {
   function exerciseId(name, muscle) {
     const key = name.toLowerCase();
     if (exerciseCache.has(key)) return exerciseCache.get(key);
-    let row = findExercise.get(name);
+    let row = findExercise.get(req.userId, name);
     if (!row) {
       const mg = norm(muscle) || 'other';
-      insertCategory.run(mg);
-      row = { id: insertExercise.run(name, mg).lastInsertRowid };
+      insertCategory.run(req.userId, mg);
+      row = { id: insertExercise.run(req.userId, name, mg).lastInsertRowid };
       createdExercises++;
     }
     exerciseCache.set(key, row.id);
@@ -259,8 +262,8 @@ router.post('/import', (req, res) => {
       }
 
       const tName = g.workout !== 'Blank Workout' ? g.workout : null;
-      const tmpl = tName ? findTemplate.get(tName) : null;
-      const sessionId = insertSession.run(tmpl ? tmpl.id : null, startedAt, endedAt, duration).lastInsertRowid;
+      const tmpl = tName ? findTemplate.get(req.userId, tName) : null;
+      const sessionId = insertSession.run(req.userId, tmpl ? tmpl.id : null, startedAt, endedAt, duration).lastInsertRowid;
 
       const exOrder = new Map(); // exId -> sort_order (first-appearance)
       const exSetCount = new Map(); // exId -> running set count (fallback numbering)
@@ -302,8 +305,8 @@ router.get('/:id', (req, res) => {
     SELECT s.*, t.name as template_name
     FROM sessions s
     LEFT JOIN templates t ON t.id = s.template_id
-    WHERE s.id = ?
-  `).get(req.params.id);
+    WHERE s.id = ? AND s.user_id = ?
+  `).get(req.params.id, req.userId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   session.sets = db.prepare(SETS_QUERY).all(req.params.id);
@@ -317,7 +320,7 @@ router.get('/:id', (req, res) => {
 // recomputed from them (minus any paused gaps) so it stays consistent.
 router.patch('/:id', (req, res) => {
   const db = getDb();
-  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   const { started_at, ended_at } = req.body;
@@ -341,8 +344,8 @@ router.patch('/:id', (req, res) => {
     SELECT s.*, t.name as template_name
     FROM sessions s
     LEFT JOIN templates t ON t.id = s.template_id
-    WHERE s.id = ?
-  `).get(req.params.id);
+    WHERE s.id = ? AND s.user_id = ?
+  `).get(req.params.id, req.userId);
   updated.sets = db.prepare(SETS_QUERY).all(req.params.id);
   updated.notes = notesMap(db, req.params.id);
   res.json(updated);
@@ -351,7 +354,7 @@ router.patch('/:id', (req, res) => {
 // DELETE /api/sessions/:id — delete a session and all its logged sets
 router.delete('/:id', (req, res) => {
   const db = getDb();
-  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   db.prepare('DELETE FROM session_sets WHERE session_id = ?').run(req.params.id);
@@ -366,7 +369,7 @@ router.post('/', (req, res) => {
   const { template_id } = req.body;
 
   const now = new Date().toISOString();
-  const result = db.prepare('INSERT INTO sessions (template_id, started_at) VALUES (?, ?)').run(template_id ?? null, now);
+  const result = db.prepare('INSERT INTO sessions (user_id, template_id, started_at) VALUES (?, ?, ?)').run(req.userId, template_id ?? null, now);
   const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(result.lastInsertRowid);
 
   // If starting from a template, pre-populate sets. These are independent
@@ -374,10 +377,11 @@ router.post('/', (req, res) => {
   if (template_id) {
     const templateExercises = db.prepare(`
       SELECT exercise_id, default_sets
-      FROM template_exercises
-      WHERE template_id = ?
-      ORDER BY sort_order
-    `).all(template_id);
+      FROM template_exercises te
+      JOIN templates t ON t.id = te.template_id
+      WHERE te.template_id = ? AND t.user_id = ?
+      ORDER BY te.sort_order
+    `).all(template_id, req.userId);
 
     const insertSet = db.prepare('INSERT INTO session_sets (session_id, exercise_id, set_number, sort_order) VALUES (?, ?, ?, ?)');
     const insertAll = db.transaction((exercises) => {
@@ -400,7 +404,7 @@ router.post('/', (req, res) => {
 // PUT /api/sessions/:id/end — end session
 router.put('/:id/end', (req, res) => {
   const db = getDb();
-  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   const now = new Date().toISOString();
@@ -412,7 +416,7 @@ router.put('/:id/end', (req, res) => {
 
   db.prepare('UPDATE sessions SET ended_at = ?, duration_seconds = ? WHERE id = ?').run(now, duration, req.params.id);
 
-  const updated = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const updated = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   res.json(updated);
 });
 
@@ -421,11 +425,11 @@ router.put('/:id/end', (req, res) => {
 // is accumulated into paused_seconds so it doesn't inflate the total).
 router.post('/:id/resume', (req, res) => {
   const db = getDb();
-  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
   if (!session.ended_at) return res.status(400).json({ error: 'Session is not ended' });
 
-  const active = db.prepare('SELECT id FROM sessions WHERE ended_at IS NULL').get();
+  const active = db.prepare('SELECT id FROM sessions WHERE ended_at IS NULL AND user_id = ?').get(req.userId);
   if (active) return res.status(409).json({ error: 'Another session is already active' });
 
   const gap = Math.max(0, Math.round((Date.now() - new Date(session.ended_at)) / 1000));
@@ -434,7 +438,7 @@ router.post('/:id/resume', (req, res) => {
   db.prepare('UPDATE sessions SET ended_at = NULL, duration_seconds = NULL, paused_seconds = ? WHERE id = ?')
     .run(newPaused, req.params.id);
 
-  const updated = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const updated = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   updated.sets = db.prepare(SETS_QUERY).all(req.params.id);
   updated.notes = notesMap(db, req.params.id);
   res.json(updated);
@@ -443,7 +447,7 @@ router.post('/:id/resume', (req, res) => {
 // POST /api/sessions/:id/sets — log a set
 router.post('/:id/sets', (req, res) => {
   const db = getDb();
-  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   const { exercise_id, set_number, weight, reps } = req.body;
@@ -477,7 +481,7 @@ router.post('/:id/sets', (req, res) => {
 // PUT /api/sessions/:id/exercises/reorder — persist exercise group order
 router.put('/:id/exercises/reorder', (req, res) => {
   const db = getDb();
-  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   const { order } = req.body;
@@ -498,7 +502,7 @@ router.put('/:id/exercises/reorder', (req, res) => {
 // for one exercise card in this session. An empty string clears it.
 router.put('/:id/exercises/:exerciseId/notes', (req, res) => {
   const db = getDb();
-  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   const notes = (req.body.notes ?? '').toString();
@@ -516,7 +520,7 @@ router.put('/:id/exercises/:exerciseId/notes', (req, res) => {
 // never modified.
 router.delete('/:id/exercises/:exerciseId', (req, res) => {
   const db = getDb();
-  const session = db.prepare('SELECT * FROM sessions WHERE id = ?').get(req.params.id);
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!session) return res.status(404).json({ error: 'Session not found' });
 
   db.prepare('DELETE FROM session_sets WHERE session_id = ? AND exercise_id = ?')
