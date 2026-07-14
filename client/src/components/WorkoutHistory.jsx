@@ -52,6 +52,24 @@ export default function WorkoutHistory({ onResume }) {
     setLoaded(true)
   }
 
+  // Download the CSV via fetch (which carries the auth header — a plain
+  // location.href navigation wouldn't) and save it through a blob link.
+  async function handleExport() {
+    const res = await fetch('/api/sessions/export')
+    if (!res.ok) {
+      alert('Export failed.')
+      return
+    }
+    const filename = res.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/)?.[1]
+      || 'simple-gym-export.csv'
+    const url = URL.createObjectURL(await res.blob())
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   useEffect(() => {
     fetch('/api/sessions').then(r => r.json()).then(data => {
       storeSessions(data)
@@ -194,7 +212,7 @@ export default function WorkoutHistory({ onResume }) {
         <div className="history-actions">
           <button className="btn-ghost" onClick={() => fileInputRef.current?.click()}>Import</button>
           {sessions.length > 0 && (
-            <button className="btn-ghost" onClick={() => { window.location.href = '/api/sessions/export' }}>
+            <button className="btn-ghost" onClick={handleExport}>
               Export
             </button>
           )}

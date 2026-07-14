@@ -1,0 +1,43 @@
+.auth-screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 24px;
+}
+
+.auth-brand {
+  margin: 0;
+  font-family: 'Pacifico', cursive;
+  font-size: 36px;
+  font-weight: 400;
+  color: var(--accent);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-card input {
+  width: 100%;
+}
+
+.auth-hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.auth-error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--danger);
+  text-align: center;
+}

@@ -22,7 +22,7 @@ function formatStarted(iso) {
   return `${date} at ${time}`
 }
 
-function App() {
+function App({ onSignOut }) {
   const [tab, setTab] = useState('templates')
   // Direction of the last tab change ('next' = rightward in the tab order),
   // so the incoming pane can slide in from the matching side.
@@ -197,7 +197,7 @@ function App() {
           {tab === 'templates' && <TemplateList onStartWorkout={startWorkout} />}
           {tab === 'history' && <WorkoutHistory onResume={setActiveSession} />}
           {tab === 'exercises' && <ExerciseLibrary />}
-          {tab === 'settings' && <Settings />}
+          {tab === 'settings' && <Settings onSignOut={onSignOut} />}
         </div>
       </main>
       {activeSession && minimised && (

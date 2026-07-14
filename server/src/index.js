@@ -3,6 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import { initDb } from './db/database.js';
+import { requireAuth } from './middleware/auth.js';
+import authRouter from './routes/auth.js';
 import exercisesRouter from './routes/exercises.js';
 import categoriesRouter from './routes/categories.js';
 import templatesRouter from './routes/templates.js';
@@ -17,11 +19,14 @@ app.use(express.json());
 // Raw CSV bodies for the history import endpoint (kept separate from JSON).
 app.use(express.text({ type: 'text/csv', limit: '5mb' }));
 
-// API routes
-app.use('/api/exercises', exercisesRouter);
-app.use('/api/categories', categoriesRouter);
-app.use('/api/templates', templatesRouter);
-app.use('/api/sessions', sessionsRouter);
+// API routes. Everything except auth itself and the health probe requires a
+// Bearer token (see middleware/auth.js) — the app is exposed publicly.
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.use('/api/auth', authRouter);
+app.use('/api/exercises', requireAuth, exercisesRouter);
+app.use('/api/categories', requireAuth, categoriesRouter);
+app.use('/api/templates', requireAuth, templatesRouter);
+app.use('/api/sessions', requireAuth, sessionsRouter);
 
 // In production, serve the built frontend
 if (process.env.NODE_ENV === 'production') {
