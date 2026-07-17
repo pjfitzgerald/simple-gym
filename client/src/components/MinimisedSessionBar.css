@@ -64,7 +64,7 @@
   flex-shrink: 0;
 }
 
-/* Push page content above the bar so nothing is hidden. */
-body.has-minimised-session {
+/* Push the tab content above the bar so nothing is hidden. */
+body.has-minimised-session .tab-content {
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }

@@ -48,8 +48,10 @@ body {
 #root {
   max-width: 600px;
   margin: 0 auto;
-  padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
-  min-height: 100dvh;
+  /* Bottom padding lives on the scrolling .tab-content instead, so the app
+     shell can be exactly viewport-height with content scrolling inside it. */
+  padding: env(safe-area-inset-top) 16px 0;
+  height: 100dvh;
 }
 
 /* Give the content more room on desktop-class viewports; phones (and the

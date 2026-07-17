@@ -18,6 +18,12 @@ export default function ExerciseLibrary() {
     fetchExercises()
   }, [])
 
+  // The list and the add/edit form swap inside the same scroll container;
+  // reset its scroll so the incoming view starts at the top.
+  useEffect(() => {
+    document.querySelector('.tab-content')?.scrollTo(0, 0)
+  }, [showForm])
+
   async function fetchExercises() {
     const [exRes, prRes] = await Promise.all([
       fetch('/api/exercises'),

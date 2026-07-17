@@ -41,6 +41,7 @@ function App({ onSignOut }) {
   // has such cards). `noSwipe` means a focused sub-view (an open History
   // detail/edit) that opts out of tab nav.
   const swipe = useRef({ x: 0, y: 0, onCard: false, noSwipe: false })
+  const contentRef = useRef(null)
 
   // Push page content above the fixed bottom bar when it's shown.
   useEffect(() => {
@@ -48,6 +49,13 @@ function App({ onSignOut }) {
     document.body.classList.toggle('has-minimised-session', show)
     return () => document.body.classList.remove('has-minimised-session')
   }, [activeSession, minimised])
+
+  // The tab panes remount on tab change but the scroll container doesn't, so
+  // reset its scroll or the incoming tab starts mid-scroll (its top content —
+  // headers, toolbars — out of view above the fold).
+  useEffect(() => {
+    contentRef.current?.scrollTo(0, 0)
+  }, [tab])
 
   // On load, recover an in-progress workout so a closed PWA tab or an
   // expired cache can't silently lose a session.
@@ -173,7 +181,7 @@ function App({ onSignOut }) {
   }
 
   return (
-    <div>
+    <div className="app-shell">
       <header className="app-header">
         <h1>simple-gym</h1>
         <nav className="app-nav">
@@ -190,6 +198,7 @@ function App({ onSignOut }) {
       </header>
       <main
         className="tab-content"
+        ref={contentRef}
         onTouchStart={onContentTouchStart}
         onTouchEnd={onContentTouchEnd}
       >
