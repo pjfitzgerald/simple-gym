@@ -3,21 +3,21 @@
   "short_name": "gym-stg",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#faf9f7",
-  "theme_color": "#2563eb",
+  "background_color": "#f97316",
+  "theme_color": "#f97316",
   "icons": [
     {
-      "src": "/icons/icon-192-staging.png",
+      "src": "/icons/icon-192-staging.png?v=2",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512-staging.png",
+      "src": "/icons/icon-512-staging.png?v=2",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512-staging.png",
+      "src": "/icons/icon-512-staging-maskable.png?v=2",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
