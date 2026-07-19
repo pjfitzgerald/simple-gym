@@ -37,7 +37,9 @@
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  padding: 2px 0 6px;
+  /* 12px below the pills so the horizontal scrollbar doesn't sit right
+     against them (it was nearly touching on mobile). */
+  padding: 2px 0 12px;
   -webkit-overflow-scrolling: touch;
 }
 

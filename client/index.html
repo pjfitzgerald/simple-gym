@@ -24,12 +24,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
 
     <script>
-      // Staging inverts the branding wholesale: homescreen icon/favicon
-      // (brown-on-orange vs prod's orange-on-brown) AND the in-app palette —
-      // the .staging class on <html> switches index.css to the inverted
-      // scheme, so it's always obvious which environment is on screen.
-      // Runs before first paint and before iOS reads the apple-touch-icon
-      // for "Add to Home Screen".
+      // Staging inverts the *branding* — homescreen icon/favicon are
+      // brown-on-orange vs prod's orange-on-brown — while the in-app palette
+      // stays the normal scheme, forced to light by default: the .staging
+      // class on <html> opts out of index.css's auto-dark media query (an
+      // explicit Dark in Settings still applies). Runs before first paint and
+      // before iOS reads the apple-touch-icon for "Add to Home Screen".
       if (location.hostname.includes('staging')) {
         document.documentElement.classList.add('staging');
         document.querySelector('link[rel="icon"]').href = '/favicon-staging.svg';
@@ -37,9 +37,9 @@
         document.querySelector('link[rel="manifest"]').href = '/manifest-staging.json';
         document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'gym-stg';
         document.title = 'simple-gym (staging)';
-        // Browser/PWA chrome follows the inverted palette's backgrounds.
-        document.querySelector('meta[name="theme-color"][media*="light"]').content = '#f97316';
-        document.querySelector('meta[name="theme-color"][media*="dark"]').content = '#7c2d12';
+        // The page renders light even on dark devices, so pin the dark-media
+        // theme-color to the light background too.
+        document.querySelector('meta[name="theme-color"][media*="dark"]').content = '#faf8f5';
       }
     </script>
   </head>
