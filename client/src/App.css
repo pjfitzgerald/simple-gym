@@ -10,18 +10,15 @@
      border instead of butting right up against it. */
   padding: 16px 16px;
   z-index: 10;
-  /* Rounded like the cards that slide underneath it, with a soft shadow so
-     the chrome reads as a bar the content passes under. */
+  /* Rounded like the cards that slide underneath it. */
   border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: 0 6px 8px -6px rgba(0, 0, 0, 0.22);
 }
 
 /* When the active view pins its own header strip below the tab bar, that
-   strip is the bottom of the chrome — it carries the rounding/shadow and the
+   strip is the bottom of the chrome — it carries the rounding and the
    app header goes flat so the two read as one block. */
 .app-header:has(+ .tab-content .pane-header) {
   border-radius: 0;
-  box-shadow: none;
 }
 
 /* Shared pinned pane-header strip: sticks flush below the app header
@@ -35,7 +32,6 @@
   margin: 0 -16px;
   padding: 0 16px 8px;
   border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: 0 6px 8px -6px rgba(0, 0, 0, 0.22);
   /* 44px row (the natural height of a .btn-primary row, which Templates and
      Exercises have) + the 8px bottom padding (border-box), so strips without
      a big button match and every tab's centred h2 lands at the same height. */
