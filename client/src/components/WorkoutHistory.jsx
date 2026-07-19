@@ -214,7 +214,7 @@ export default function WorkoutHistory({ onResume }) {
 
   return (
     <div className="workout-history">
-      <div className="history-header">
+      <div className="pane-header history-header">
         <h2>History</h2>
         <div className="history-actions">
           <button className="btn-ghost" onClick={() => fileInputRef.current?.click()}>Import</button>

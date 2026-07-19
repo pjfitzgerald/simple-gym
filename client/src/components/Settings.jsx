@@ -78,7 +78,9 @@ export default function Settings({ onSignOut }) {
 
   return (
     <div className="settings">
-      <h2>Settings</h2>
+      <div className="pane-header settings-header">
+        <h2>Settings</h2>
+      </div>
 
       <section className="settings-section">
         <h3>Units</h3>

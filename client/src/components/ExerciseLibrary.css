@@ -4,6 +4,15 @@
   gap: 12px;
 }
 
+/* Inner layout of the pinned strip (header + search + pills). Gap mirrors
+   the pane's own 12px rhythm since the wrapper takes the items out of the
+   .exercise-library flex flow. */
+.library-pinned {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .library-header {
   display: flex;
   justify-content: space-between;

@@ -69,7 +69,7 @@ export default function TemplateList({ onStartWorkout }) {
 
   return (
     <div className="template-list">
-      <div className="template-header">
+      <div className="pane-header template-header">
         <h2>Templates</h2>
         <button className="btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>
           + New

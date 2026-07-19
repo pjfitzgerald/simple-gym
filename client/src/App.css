@@ -2,10 +2,44 @@
   position: sticky;
   top: 0;
   background: var(--bg);
+  /* Full-bleed across #root's 16px side padding so scrolling content can
+     never peek beside the header, and so the rounded bottom corners land
+     over the empty gutters rather than over passing cards. */
+  margin: 0 -16px;
   /* Bottom padding gives the tab content room to breathe below the nav
      border instead of butting right up against it. */
-  padding: 16px 0 16px;
+  padding: 16px 16px;
   z-index: 10;
+  /* Rounded like the cards that slide underneath it, with a soft shadow so
+     the chrome reads as a bar the content passes under. */
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: 0 6px 8px -6px rgba(0, 0, 0, 0.22);
+}
+
+/* When the active view pins its own header strip below the tab bar, that
+   strip is the bottom of the chrome — it carries the rounding/shadow and the
+   app header goes flat so the two read as one block. */
+.app-header:has(+ .tab-content .pane-header) {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Shared pinned pane-header strip: sticks flush below the app header
+   (measured --app-header-h), hiding content that scrolls behind it. Panes
+   add their own inner layout on top of this. */
+.pane-header {
+  position: sticky;
+  top: var(--app-header-h, 130px);
+  z-index: 5;
+  background: var(--bg);
+  margin: 0 -16px;
+  padding: 0 16px 8px;
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: 0 6px 8px -6px rgba(0, 0, 0, 0.22);
+  /* 44px row (the natural height of a .btn-primary row, which Templates and
+     Exercises have) + the 8px bottom padding (border-box), so strips without
+     a big button match and every tab's centred h2 lands at the same height. */
+  min-height: 52px;
 }
 
 /* The header's measured height, kept up to date by a ResizeObserver in App
@@ -115,7 +149,7 @@
    denser, more information-rich layout. Comfortable is the default; this class
    is toggled on <body> by the settings hook. */
 body.density-compact .app-header {
-  padding: 10px 0 10px;
+  padding: 10px 16px;
 }
 
 body.density-compact .app-header h1 {

@@ -87,31 +87,35 @@ export default function ExerciseLibrary() {
 
   return (
     <div className="exercise-library">
-      <div className="library-header">
-        <h2>Exercises</h2>
-        <button className="btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>
-          + Add
-        </button>
-      </div>
-
-      <input
-        type="search"
-        placeholder="Search exercises..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="search-input"
-      />
-
-      <div className="filter-tabs">
-        {['all', ...categories].map(group => (
-          <button
-            key={group}
-            className={`filter-tab ${filter === group ? 'active' : ''}`}
-            onClick={() => setFilter(group)}
-          >
-            {group}
+      {/* Header, search and category pills pin together below the tab bar
+          so filtering stays reachable however deep the list is scrolled. */}
+      <div className="pane-header library-pinned">
+        <div className="library-header">
+          <h2>Exercises</h2>
+          <button className="btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>
+            + Add
           </button>
-        ))}
+        </div>
+
+        <input
+          type="search"
+          placeholder="Search exercises..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="search-input"
+        />
+
+        <div className="filter-tabs">
+          {['all', ...categories].map(group => (
+            <button
+              key={group}
+              className={`filter-tab ${filter === group ? 'active' : ''}`}
+              onClick={() => setFilter(group)}
+            >
+              {group}
+            </button>
+          ))}
+        </div>
       </div>
 
       {showForm && (

@@ -1,5 +1,12 @@
-.settings > h2 {
-  margin: 0 0 4px;
+/* Inner layout of the pinned strip; row height comes from .pane-header's
+   min-height so the centred h2 matches the other tabs. */
+.settings-header {
+  display: flex;
+  align-items: center;
+}
+
+.settings-header h2 {
+  margin: 0;
   font-size: 20px;
   font-weight: 700;
 }
