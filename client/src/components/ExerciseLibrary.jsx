@@ -18,6 +18,12 @@ export default function ExerciseLibrary() {
     fetchExercises()
   }, [])
 
+  // The list and the add/edit form swap within the same page scroll; reset it
+  // so the incoming view starts at the top.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [showForm])
+
   async function fetchExercises() {
     const [exRes, prRes] = await Promise.all([
       fetch('/api/exercises'),

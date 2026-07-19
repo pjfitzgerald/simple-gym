@@ -77,6 +77,13 @@ export default function WorkoutHistory({ onResume }) {
     })
   }, [])
 
+  // List ↔ detail ↔ edit swap views within the same page scroll, so reset it
+  // or the incoming view starts wherever the outgoing one was scrolled to
+  // (e.g. the detail toolbar hidden under the sticky header).
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [detail, editing])
+
   async function viewDetail(session) {
     const res = await fetch(`/api/sessions/${session.id}`)
     setDetail(await res.json())

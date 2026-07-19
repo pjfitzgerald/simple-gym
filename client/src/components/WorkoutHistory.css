@@ -6,10 +6,21 @@
   color: var(--text);
 }
 
+/* Pinned below the sticky app header: the History title + Import/Export row
+   stays visible while the card list scrolls underneath it. The background
+   hides cards passing behind; the negative horizontal margin + padding widen
+   the strip to #root's full padded width so no card sliver peeks at the
+   sides. */
 .history-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: var(--app-header-h, 130px);
+  z-index: 5;
+  background: var(--bg);
+  margin: 0 -16px;
+  padding: 0 16px 8px;
 }
 
 .history-header h2 {

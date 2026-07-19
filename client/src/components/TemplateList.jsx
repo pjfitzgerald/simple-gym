@@ -15,6 +15,12 @@ export default function TemplateList({ onStartWorkout }) {
     fetchTemplates()
   }, [])
 
+  // The list and the template form swap within the same page scroll; reset it
+  // so the incoming view starts at the top.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [showForm])
+
   async function fetchTemplates() {
     const res = await fetch('/api/templates')
     setTemplates(await res.json())

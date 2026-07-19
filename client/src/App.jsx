@@ -41,6 +41,30 @@ function App({ onSignOut }) {
   // has such cards). `noSwipe` means a focused sub-view (an open History
   // detail/edit) that opts out of tab nav.
   const swipe = useRef({ x: 0, y: 0, onCard: false, noSwipe: false })
+  const headerObserver = useRef(null)
+
+  // Keep --app-header-h equal to the sticky header's real height so in-pane
+  // sticky elements (the pinned History header) sit flush below it. Observed
+  // rather than hardcoded: Pacifico loading in and the density setting both
+  // change the height. A callback ref (not an effect) because the header
+  // mounts late — the first renders return the loading/resume states.
+  function observeHeader(el) {
+    headerObserver.current?.disconnect()
+    headerObserver.current = null
+    if (!el) return
+    const update = () =>
+      document.documentElement.style.setProperty('--app-header-h', `${el.offsetHeight}px`)
+    update()
+    headerObserver.current = new ResizeObserver(update)
+    headerObserver.current.observe(el)
+  }
+
+  // The panes remount on tab change but the page keeps its scroll position,
+  // so reset it or the incoming tab starts mid-scroll with its top content
+  // hidden under the sticky header.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [tab])
 
   // Push page content above the fixed bottom bar when it's shown.
   useEffect(() => {
@@ -174,7 +198,7 @@ function App({ onSignOut }) {
 
   return (
     <div>
-      <header className="app-header">
+      <header className="app-header" ref={observeHeader}>
         <h1>simple-gym</h1>
         <nav className="app-nav">
           {TABS.map(t => (

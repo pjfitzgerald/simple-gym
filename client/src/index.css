@@ -41,6 +41,14 @@
   box-sizing: border-box;
 }
 
+/* Reserve the viewport scrollbar gutter (classic-scrollbar desktops) so tabs
+   short enough not to scroll — which compact density makes common — don't
+   reflow the centered column a few px wider than tabs that do scroll. Overlay
+   scrollbars (phones, macOS) reserve nothing, so this is a no-op there. */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
 }

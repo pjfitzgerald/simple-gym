@@ -8,6 +8,13 @@
   z-index: 10;
 }
 
+/* The header's measured height, kept up to date by a ResizeObserver in App
+   (Pacifico loading and the density setting both change it), so in-pane
+   sticky elements can pin themselves flush below the sticky header. */
+:root {
+  --app-header-h: 130px;
+}
+
 .app-header h1 {
   margin: 0 0 12px;
   font-family: 'Pacifico', cursive;
@@ -50,8 +57,12 @@
   overflow-x: clip;
 }
 
+/* Fill mode `backwards` (not `both`): a forwards fill would leave a
+   `transform: translateX(0)` applied for good, and a transformed ancestor
+   breaks position:fixed children (see the template-preview portal saga) and
+   can interfere with sticky descendants like the pinned history header. */
 .tab-pane {
-  animation: tab-in-next 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tab-in-next 0.24s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 .tab-pane.tab-prev {
