@@ -1,16 +1,11 @@
-/* Fixed-height shell: header on top, tab content scrolling in its own
-   container below. The document itself never scrolls, so content can never
-   slide underneath the tab bar. */
-.app-shell {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
 .app-header {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
   /* Bottom padding gives the tab content room to breathe below the nav
      border instead of butting right up against it. */
   padding: 16px 0 16px;
+  z-index: 10;
 }
 
 .app-header h1 {
@@ -45,20 +40,14 @@
   border-bottom-color: var(--accent);
 }
 
-/* The scroll container for the active tab. flex:1 fills the shell below the
-   header, which also gives the swipe gesture a full-height surface even on a
-   short tab. */
+/* Swipe-between-tabs: fill the viewport so the gesture has a surface even on a
+   short tab, and add a light slide-in when the active tab changes. */
 .tab-content {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  display: block;
+  min-height: calc(100vh - 140px);
   /* The incoming pane slides in from off to one side; clip so that travel
      never shows a horizontal scrollbar. */
   overflow-x: clip;
-  /* Reserve the scrollbar gutter (desktop) so switching between tabs that do
-     and don't scroll doesn't nudge the layout width. */
-  scrollbar-gutter: stable;
-  padding-bottom: calc(24px + env(safe-area-inset-bottom));
 }
 
 .tab-pane {
