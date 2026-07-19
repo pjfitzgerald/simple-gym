@@ -9,7 +9,7 @@ import {
 import './Settings.css'
 
 export default function Settings({ onSignOut }) {
-  const { unit, setUnit, density, setDensity } = useSettings()
+  const { unit, setUnit, density, setDensity, theme, setTheme } = useSettings()
 
   // PR management: exercises carry their manual override (manual_pr_weight/reps)
   // via SELECT *, while /prs gives the combined value actually displayed.
@@ -108,6 +108,26 @@ export default function Settings({ onSignOut }) {
               key={value}
               className={`segmented-option ${density === value ? 'active' : ''}`}
               onClick={() => setDensity(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <h3>Theme</h3>
+        <p className="settings-hint">Auto follows your device's light/dark setting.</p>
+        <div className="settings-segmented">
+          {[
+            ['auto', 'Auto'],
+            ['light', 'Light'],
+            ['dark', 'Dark'],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              className={`segmented-option ${theme === value ? 'active' : ''}`}
+              onClick={() => setTheme(value)}
             >
               {label}
             </button>

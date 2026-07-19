@@ -24,16 +24,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
 
     <script>
-      // The inverted homescreen icon (brown-on-orange vs prod's orange-on-brown)
-      // is the only staging/prod differentiator — the in-app colour scheme
-      // stays the same in both.
-      // Runs before iOS reads the apple-touch-icon for "Add to Home Screen".
+      // Staging inverts the branding wholesale: homescreen icon/favicon
+      // (brown-on-orange vs prod's orange-on-brown) AND the in-app palette —
+      // the .staging class on <html> switches index.css to the inverted
+      // scheme, so it's always obvious which environment is on screen.
+      // Runs before first paint and before iOS reads the apple-touch-icon
+      // for "Add to Home Screen".
       if (location.hostname.includes('staging')) {
+        document.documentElement.classList.add('staging');
         document.querySelector('link[rel="icon"]').href = '/favicon-staging.svg';
         document.querySelector('link[rel="apple-touch-icon"]').href = '/icons/icon-180-staging.png?v=2';
         document.querySelector('link[rel="manifest"]').href = '/manifest-staging.json';
         document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'gym-stg';
         document.title = 'simple-gym (staging)';
+        // Browser/PWA chrome follows the inverted palette's backgrounds.
+        document.querySelector('meta[name="theme-color"][media*="light"]').content = '#f97316';
+        document.querySelector('meta[name="theme-color"][media*="dark"]').content = '#7c2d12';
       }
     </script>
   </head>

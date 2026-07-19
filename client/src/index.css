@@ -1,3 +1,10 @@
+/* Theme resolution: 'auto' (no data-theme on <html>) lets the
+   prefers-color-scheme media query pick the palette; Settings can force a
+   theme by setting data-theme="light" | "dark". The dark blocks are scoped
+   with :not([data-theme='light']) / [data-theme='dark'] so a forced theme
+   always beats the OS preference — keep each palette's two copies in sync.
+   The .staging class (added by the index.html boot script on staging
+   hostnames) swaps in a fully inverted palette further down. */
 :root {
   /* Palette aligned with the inventory app: warm sepia neutrals + bright
      orange-500 accent, soft card shadows, Pacifico wordmark. */
@@ -9,6 +16,7 @@
   --accent: #f97316;
   --accent-hover: #ea580c;
   --accent-bg: rgba(249, 115, 22, 0.1);
+  --on-accent: #ffffff;
   --danger: #b91c1c;
   --danger-hover: #991b1b;
   --radius: 8px;
@@ -22,7 +30,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --text: #f5f0e8;
     --text-secondary: #b8a089;
     --bg: #1a1612;
@@ -35,6 +43,70 @@
     --danger-hover: #ef4444;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
   }
+}
+
+:root[data-theme='dark'] {
+  --text: #f5f0e8;
+  --text-secondary: #b8a089;
+  --bg: #1a1612;
+  --surface: #2a231e;
+  --border: #5c4a3d;
+  --accent: #f97316;
+  --accent-hover: #fb923c;
+  --accent-bg: rgba(249, 115, 22, 0.16);
+  --danger: #f87171;
+  --danger-hover: #ef4444;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Staging: the whole scheme inverts — orange background, brown accents —
+   mirroring the inverted staging homescreen icon, so there's never any doubt
+   which environment is on screen. */
+:root.staging {
+  --text: #2f1c0e;
+  --text-secondary: #6b3a17;
+  --bg: #f97316;
+  --surface: #fb923c;
+  --border: #ea580c;
+  --accent: #3d322a;
+  --accent-hover: #241c15;
+  --accent-bg: rgba(61, 50, 42, 0.15);
+  --on-accent: #ffffff;
+  --danger: #7f1d1d;
+  --danger-hover: #681818;
+  --shadow: 0 1px 3px rgba(70, 25, 0, 0.25), 0 1px 2px rgba(70, 25, 0, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root.staging:not([data-theme='light']) {
+    --text: #f5f0e8;
+    --text-secondary: #fdba74;
+    --bg: #7c2d12;
+    --surface: #9a3412;
+    --border: #c2410c;
+    --accent: #f5f0e8;
+    --accent-hover: #ffffff;
+    --accent-bg: rgba(245, 240, 232, 0.16);
+    --on-accent: #7c2d12;
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+:root.staging[data-theme='dark'] {
+  --text: #f5f0e8;
+  --text-secondary: #fdba74;
+  --bg: #7c2d12;
+  --surface: #9a3412;
+  --border: #c2410c;
+  --accent: #f5f0e8;
+  --accent-hover: #ffffff;
+  --accent-bg: rgba(245, 240, 232, 0.16);
+  --on-accent: #7c2d12;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -94,8 +166,10 @@ input:focus, select:focus {
 }
 
 /* Replace the native select chrome with a custom chevron so it matches the
-   app's own styling instead of the OS/browser default; --accent is the same
-   hex in both themes so it's safe to bake into the SVG data URI. */
+   app's own styling instead of the OS/browser default. The colour is baked
+   into the SVG data URI (a background-image can't read --accent), so each
+   palette whose accent differs needs its own copy — see the staging
+   overrides below. */
 select {
   appearance: none;
   -webkit-appearance: none;
@@ -107,9 +181,24 @@ select {
   background-size: 12px 8px;
 }
 
+/* Staging chevron recolours matching the inverted accents. */
+:root.staging select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%233d322a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  :root.staging:not([data-theme='light']) select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23f5f0e8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+}
+
+:root.staging[data-theme='dark'] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23f5f0e8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
 .btn-primary {
   background: var(--accent);
-  color: white;
+  color: var(--on-accent, white);
 }
 
 .btn-primary:hover {

@@ -28,7 +28,7 @@
 
 .btn-start-blank:hover {
   background: var(--accent);
-  color: white;
+  color: var(--on-accent, white);
 }
 
 .template-card {

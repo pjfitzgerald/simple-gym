@@ -42,7 +42,7 @@
 
 .segmented-option.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent, #fff);
 }
 
 /* PR management */
