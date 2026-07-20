@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   useSettings,
   unitLabel,
@@ -6,6 +6,7 @@ import {
   displayToKg,
   formatWeight,
 } from '../hooks/useSettings.jsx'
+import { useCachedGet } from '../hooks/useCachedGet.js'
 import './Settings.css'
 
 export default function Settings({ onSignOut }) {
@@ -13,23 +14,17 @@ export default function Settings({ onSignOut }) {
 
   // PR management: exercises carry their manual override (manual_pr_weight/reps)
   // via SELECT *, while /prs gives the combined value actually displayed.
-  const [exercises, setExercises] = useState([])
-  const [prs, setPrs] = useState({})
+  // Same cached URLs as the Exercises tab, so the two stay warm together.
+  const { data: exercisesData, refresh: refreshExercises } = useCachedGet('/api/exercises')
+  const { data: prsData, refresh: refreshPrs } = useCachedGet('/api/exercises/prs')
+  const exercises = exercisesData ?? []
+  const prs = prsData ?? {}
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [draft, setDraft] = useState({ weight: '', reps: '' })
 
-  useEffect(() => {
-    loadPrData()
-  }, [])
-
-  async function loadPrData() {
-    const [exRes, prRes] = await Promise.all([
-      fetch('/api/exercises'),
-      fetch('/api/exercises/prs'),
-    ])
-    setExercises(await exRes.json())
-    setPrs(await prRes.json())
+  function loadPrData() {
+    return Promise.all([refreshExercises(), refreshPrs()])
   }
 
   function startEdit(ex) {
@@ -150,7 +145,7 @@ export default function Settings({ onSignOut }) {
           onChange={e => setSearch(e.target.value)}
         />
         <div className="settings-pr-list">
-          {filtered.length === 0 && <p className="empty-state">No exercises found</p>}
+          {exercisesData && filtered.length === 0 && <p className="empty-state">No exercises found</p>}
           {filtered.map(ex => {
             const pr = prs[ex.id]
             const isEditing = editingId === ex.id

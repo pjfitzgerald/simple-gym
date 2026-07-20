@@ -1,20 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback } from 'react'
+import { useCachedGet } from './useCachedGet.js'
 
 // Exercise categories (muscle groups) loaded from the server. Used for the
 // filter tabs and the exercise form, replacing the old hardcoded list so
-// user-added categories show up everywhere. `addCategory` POSTs a new one and
-// refreshes the list, returning the saved (lowercased) name.
+// user-added categories show up everywhere. `addCategory` POSTs a new one
+// (the response is the fresh list) and returns the saved (lowercased) name.
 export function useCategories() {
-  const [categories, setCategories] = useState([])
-
-  const refresh = useCallback(() => {
-    return fetch('/api/categories')
-      .then(r => r.json())
-      .then(setCategories)
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => { refresh() }, [refresh])
+  const { data, refresh, mutate } = useCachedGet('/api/categories')
+  const categories = data ?? []
 
   const addCategory = useCallback(async (name) => {
     const res = await fetch('/api/categories', {
@@ -23,10 +16,9 @@ export function useCategories() {
       body: JSON.stringify({ name }),
     })
     if (!res.ok) return null
-    const list = await res.json()
-    setCategories(list)
+    mutate(await res.json())
     return name.trim().toLowerCase()
-  }, [])
+  }, [mutate])
 
   return { categories, addCategory, refresh }
 }

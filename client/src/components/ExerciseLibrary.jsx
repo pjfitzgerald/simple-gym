@@ -1,22 +1,21 @@
 import { useState, useEffect } from 'react'
 import ExerciseForm from './ExerciseForm.jsx'
 import { useCategories } from '../hooks/useCategories.js'
+import { useCachedGet } from '../hooks/useCachedGet.js'
 import { useSettings, formatWeight, unitLabel } from '../hooks/useSettings.jsx'
 import './ExerciseLibrary.css'
 
 export default function ExerciseLibrary() {
   const { categories } = useCategories()
   const { unit } = useSettings()
-  const [exercises, setExercises] = useState([])
-  const [prs, setPrs] = useState({})
+  const { data: exercisesData, refresh: refreshExercises } = useCachedGet('/api/exercises')
+  const { data: prsData, refresh: refreshPrs } = useCachedGet('/api/exercises/prs')
+  const exercises = exercisesData ?? []
+  const prs = prsData ?? {}
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
-
-  useEffect(() => {
-    fetchExercises()
-  }, [])
 
   // The list and the add/edit form swap within the same page scroll; reset it
   // so the incoming view starts at the top.
@@ -24,13 +23,8 @@ export default function ExerciseLibrary() {
     window.scrollTo(0, 0)
   }, [showForm])
 
-  async function fetchExercises() {
-    const [exRes, prRes] = await Promise.all([
-      fetch('/api/exercises'),
-      fetch('/api/exercises/prs'),
-    ])
-    setExercises(await exRes.json())
-    setPrs(await prRes.json())
+  function fetchExercises() {
+    return Promise.all([refreshExercises(), refreshPrs()])
   }
 
   async function handleDelete(exercise) {
@@ -127,7 +121,7 @@ export default function ExerciseLibrary() {
       )}
 
       <div className="exercise-list">
-        {filtered.length === 0 && (
+        {exercisesData && filtered.length === 0 && (
           <p className="empty-state">No exercises found</p>
         )}
         {filter === 'all'

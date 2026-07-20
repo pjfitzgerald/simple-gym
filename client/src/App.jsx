@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import { prefetch } from './hooks/useCachedGet.js'
 import ExerciseLibrary from './components/ExerciseLibrary.jsx'
 import TemplateList from './components/TemplateList.jsx'
 import LiveWorkout from './components/LiveWorkout.jsx'
@@ -72,6 +73,19 @@ function App({ onSignOut }) {
     document.body.classList.toggle('has-minimised-session', show)
     return () => document.body.classList.remove('has-minimised-session')
   }, [activeSession, minimised])
+
+  // Warm every tab's data once at startup, so even the first visit to a tab
+  // slides in with its content already rendered (from the useCachedGet cache)
+  // instead of snapping in when its mount fetch lands.
+  useEffect(() => {
+    prefetch([
+      '/api/templates',
+      '/api/sessions',
+      '/api/exercises',
+      '/api/exercises/prs',
+      '/api/categories',
+    ])
+  }, [])
 
   // On load, recover an in-progress workout so a closed PWA tab or an
   // expired cache can't silently lose a session.

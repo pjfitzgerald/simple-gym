@@ -1,30 +1,23 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import TemplateForm from './TemplateForm.jsx'
+import { useCachedGet } from '../hooks/useCachedGet.js'
 import './TemplateList.css'
 
 export default function TemplateList({ onStartWorkout }) {
-  const [templates, setTemplates] = useState([])
+  const { data: templatesData, refresh: fetchTemplates } = useCachedGet('/api/templates')
+  const templates = templatesData ?? []
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   // Tapping Start opens a preview of the template's exercises first, so you can
   // confirm the line-up before the session timer begins.
   const [preview, setPreview] = useState(null)
 
-  useEffect(() => {
-    fetchTemplates()
-  }, [])
-
   // The list and the template form swap within the same page scroll; reset it
   // so the incoming view starts at the top.
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [showForm])
-
-  async function fetchTemplates() {
-    const res = await fetch('/api/templates')
-    setTemplates(await res.json())
-  }
 
   async function handleDelete(template) {
     if (!confirm(`Delete "${template.name}"?`)) return
@@ -80,7 +73,7 @@ export default function TemplateList({ onStartWorkout }) {
         Start Blank Workout
       </button>
 
-      {templates.length === 0 && (
+      {templatesData && templates.length === 0 && (
         <p className="empty-state">No templates yet. Create one to get started.</p>
       )}
 

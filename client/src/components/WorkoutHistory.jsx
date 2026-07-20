@@ -1,28 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 import WorkoutEdit from './WorkoutEdit.jsx'
+import { useCachedGet } from '../hooks/useCachedGet.js'
 import { useSettings, formatWeight, unitLabel } from '../hooks/useSettings.jsx'
 import './WorkoutHistory.css'
 
-// The tab panes remount on every tab switch, so cache the last-fetched
-// sessions module-side. Re-entering History then renders its cards instantly
-// from the cache (and still refetches in the background) instead of flashing
-// an empty list + "no workouts" message while a fresh fetch resolves.
-let sessionsCache = null
-
 export default function WorkoutHistory({ onResume }) {
   const { unit } = useSettings()
-  const [sessions, setSessions] = useState(sessionsCache ?? [])
-  // Only trust an empty list once a fetch has actually completed, so the
-  // empty-state message never shows during the initial load.
-  const [loaded, setLoaded] = useState(sessionsCache != null)
+  // Cached so a remounting pane renders its cards instantly (see
+  // useCachedGet). `loaded` gates the empty-state message: only trust an
+  // empty list once a fetch has actually completed.
+  const { data: sessionsData, refresh, mutate } = useCachedGet('/api/sessions')
+  const sessions = sessionsData ?? []
+  const loaded = sessionsData != null
   const [detail, setDetail] = useState(null)
   const [editing, setEditing] = useState(false)
   const fileInputRef = useRef(null)
-
-  function storeSessions(next) {
-    sessionsCache = next
-    setSessions(next)
-  }
 
   // Import history from a CSV in the export's shape. The endpoint skips
   // workouts already present and auto-creates any missing exercises, so this
@@ -47,9 +39,7 @@ export default function WorkoutHistory({ onResume }) {
     if (r.skippedSessions) parts.push(`skipped ${r.skippedSessions} already present`)
     if (r.createdExercises) parts.push(`created ${r.createdExercises} exercise${r.createdExercises === 1 ? '' : 's'}`)
     alert(parts.join(', ') + '.')
-    const listRes = await fetch('/api/sessions')
-    storeSessions(await listRes.json())
-    setLoaded(true)
+    await refresh()
   }
 
   // Download the CSV via fetch (which carries the auth header — a plain
@@ -70,13 +60,6 @@ export default function WorkoutHistory({ onResume }) {
     URL.revokeObjectURL(url)
   }
 
-  useEffect(() => {
-    fetch('/api/sessions').then(r => r.json()).then(data => {
-      storeSessions(data)
-      setLoaded(true)
-    })
-  }, [])
-
   // List ↔ detail ↔ edit swap views within the same page scroll, so reset it
   // or the incoming view starts wherever the outgoing one was scrolled to
   // (e.g. the detail toolbar hidden under the sticky header).
@@ -92,7 +75,7 @@ export default function WorkoutHistory({ onResume }) {
   async function deleteSession(id) {
     if (!confirm('Delete this workout? This cannot be undone.')) return
     await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
-    storeSessions(sessions.filter(s => s.id !== id))
+    mutate(sessions.filter(s => s.id !== id))
     setDetail(null)
   }
 
@@ -100,11 +83,10 @@ export default function WorkoutHistory({ onResume }) {
   // or set changes show up immediately.
   async function closeEdit() {
     setEditing(false)
-    const [listRes, detailRes] = await Promise.all([
-      fetch('/api/sessions'),
+    const [, detailRes] = await Promise.all([
+      refresh(),
       fetch(`/api/sessions/${detail.id}`),
     ])
-    storeSessions(await listRes.json())
     setDetail(await detailRes.json())
   }
 
