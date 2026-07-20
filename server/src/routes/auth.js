@@ -16,7 +16,12 @@ const router = Router();
 const PASSWORD_RESET_TTL_HOURS = 2;
 
 function userJson(user) {
-  return { id: user.id, email: user.email, email_verified: !!user.email_verified_at };
+  return {
+    id: user.id,
+    email: user.email,
+    email_verified: !!user.email_verified_at,
+    settings: { unit: user.unit, density: user.density, theme: user.theme },
+  };
 }
 
 function findByEmail(email) {

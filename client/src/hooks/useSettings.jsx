@@ -1,7 +1,12 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { updateSettings } from '../services/auth.js'
 
-// App-wide user preferences, persisted to localStorage (single-user app, so
-// no server round-trip needed). Three settings today:
+// App-wide user preferences, persisted server-side on the account (so they
+// follow a user across devices/browsers) rather than in client localStorage.
+// AuthGate calls hydrate() with the account's saved settings whenever a user
+// is resolved (login, signup verification, or a restored session) and again
+// with none on sign-out, so this provider itself doesn't need to know
+// anything about auth state. Three settings today:
 //   unit    — 'kg' | 'lbs'  weight display unit. Weights are always *stored* in
 //             kg; this only changes how they're shown and entered.
 //   density — 'comfortable' | 'compact'  toggles a body class that tightens
@@ -12,27 +17,16 @@ import { createContext, useContext, useEffect, useState } from 'react'
 
 const LB_PER_KG = 2.2046226218
 
+const DEFAULTS = { unit: 'kg', density: 'comfortable', theme: 'auto' }
+
 const SettingsContext = createContext(null)
 
-function read(key, fallback) {
-  try {
-    return localStorage.getItem(key) ?? fallback
-  } catch {
-    return fallback
-  }
-}
-
 export function SettingsProvider({ children }) {
-  const [unit, setUnitState] = useState(() => read('sg.unit', 'kg'))
-  const [density, setDensityState] = useState(() => read('sg.density', 'comfortable'))
-  const [theme, setThemeState] = useState(() => read('sg.theme', 'auto'))
+  const [unit, setUnitState] = useState(DEFAULTS.unit)
+  const [density, setDensityState] = useState(DEFAULTS.density)
+  const [theme, setThemeState] = useState(DEFAULTS.theme)
 
   useEffect(() => {
-    try { localStorage.setItem('sg.unit', unit) } catch {}
-  }, [unit])
-
-  useEffect(() => {
-    try { localStorage.setItem('sg.theme', theme) } catch {}
     const rootEl = document.documentElement
     if (theme === 'auto') delete rootEl.dataset.theme
     else rootEl.dataset.theme = theme
@@ -49,19 +43,35 @@ export function SettingsProvider({ children }) {
   }, [theme])
 
   useEffect(() => {
-    try { localStorage.setItem('sg.density', density) } catch {}
     document.body.classList.toggle('density-compact', density === 'compact')
     return () => document.body.classList.remove('density-compact')
   }, [density])
 
-  const value = {
-    unit,
-    setUnit: setUnitState,
-    density,
-    setDensity: setDensityState,
-    theme,
-    setTheme: setThemeState,
+  // Overwrite local state from the account's saved settings — no persisting
+  // back, this is a pure read into the UI.
+  const hydrate = useCallback(settings => {
+    setUnitState(settings?.unit ?? DEFAULTS.unit)
+    setDensityState(settings?.density ?? DEFAULTS.density)
+    setThemeState(settings?.theme ?? DEFAULTS.theme)
+  }, [])
+
+  // Each setter applies immediately and saves to the account in the
+  // background; a failed save is swallowed — worst case the change doesn't
+  // survive a reload, which isn't worth surfacing for a display preference.
+  function setUnit(value) {
+    setUnitState(value)
+    updateSettings({ unit: value }).catch(() => {})
   }
+  function setDensity(value) {
+    setDensityState(value)
+    updateSettings({ density: value }).catch(() => {})
+  }
+  function setTheme(value) {
+    setThemeState(value)
+    updateSettings({ theme: value }).catch(() => {})
+  }
+
+  const value = { unit, setUnit, density, setDensity, theme, setTheme, hydrate }
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>
 }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import App from '../App.jsx'
 import AuthScreen from './AuthScreen.jsx'
+import { useSettings } from '../hooks/useSettings.jsx'
 import {
   getToken,
   clearToken,
@@ -17,11 +18,19 @@ export default function AuthGate() {
   // True until the stored token has been checked — avoids flashing the login
   // screen for an already-authenticated user.
   const [checking, setChecking] = useState(true)
+  const { hydrate } = useSettings()
 
   // A 401 on any API call means the token is no longer good.
   useEffect(() => {
     setUnauthorizedHandler(() => setUser(null))
   }, [])
+
+  // Pull the account's saved display settings into the SettingsProvider
+  // whenever the resolved user changes (login, signup verification, restored
+  // session, sign-out) — every path that leads here goes through setUser.
+  useEffect(() => {
+    hydrate(user?.settings)
+  }, [user, hydrate])
 
   useEffect(() => {
     let cancelled = false

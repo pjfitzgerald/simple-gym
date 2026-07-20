@@ -9,6 +9,7 @@ import exercisesRouter from './routes/exercises.js';
 import categoriesRouter from './routes/categories.js';
 import templatesRouter from './routes/templates.js';
 import sessionsRouter from './routes/sessions.js';
+import settingsRouter from './routes/settings.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -27,6 +28,7 @@ app.use('/api/exercises', requireAuth, exercisesRouter);
 app.use('/api/categories', requireAuth, categoriesRouter);
 app.use('/api/templates', requireAuth, templatesRouter);
 app.use('/api/sessions', requireAuth, sessionsRouter);
+app.use('/api/settings', requireAuth, settingsRouter);
 
 // In production, serve the built frontend
 if (process.env.NODE_ENV === 'production') {

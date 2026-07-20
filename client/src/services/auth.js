@@ -128,3 +128,17 @@ export async function fetchCurrentUser() {
 export function logout() {
   clearToken()
 }
+
+// Persist a display-preference change (unit/density/theme) to the account.
+// Not routed through postAuth: this lives under /api/settings (not
+// /api/auth), so a 401 here is treated as a real expired session by the
+// fetch interceptor's 401 handler, same as any other authenticated endpoint.
+export async function updateSettings(patch) {
+  const res = await fetch('/api/settings', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  if (!res.ok) throw new AuthError('Could not save settings')
+  return (await res.json()).settings
+}
