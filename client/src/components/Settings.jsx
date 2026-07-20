@@ -204,8 +204,6 @@ export default function Settings({ onSignOut }) {
       </section>
 
       <section className="settings-section">
-        <h3>Account</h3>
-        <p className="settings-hint">Signing out on this device only — the token is discarded.</p>
         <button
           className="btn-ghost"
           onClick={() => { if (confirm('Sign out?')) onSignOut() }}
