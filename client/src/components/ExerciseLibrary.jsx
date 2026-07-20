@@ -124,14 +124,12 @@ export default function ExerciseLibrary() {
         {exercisesData && filtered.length === 0 && (
           <p className="empty-state">No exercises found</p>
         )}
-        {filter === 'all'
-          ? sections.map(section => (
-              <div key={section.category} className="exercise-section">
-                <h3 className="exercise-section-title">{section.category}</h3>
-                {section.items.map(renderItem)}
-              </div>
-            ))
-          : filtered.map(renderItem)}
+        {sections.map(section => (
+          <div key={section.category} className="exercise-section">
+            <h3 className="exercise-section-title">{section.category}</h3>
+            {section.items.map(renderItem)}
+          </div>
+        ))}
       </div>
     </div>
   )

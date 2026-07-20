@@ -143,51 +143,132 @@
 
 /* Compact density (Settings → Display density): tighten spacing app-wide for a
    denser, more information-rich layout. Comfortable is the default; this class
-   is toggled on <body> by the settings hook. */
+   is toggled on <body> by the settings hook. --app-header-h is re-measured by
+   App's ResizeObserver whenever density changes, so shrinking the pinned
+   headers here is safe — nothing needs to hardcode the new height. */
 body.density-compact .app-header {
-  padding: 10px 16px;
+  padding: 8px 16px;
 }
 
 body.density-compact .app-header h1 {
-  margin-bottom: 8px;
-  font-size: 24px;
+  margin-bottom: 4px;
+  font-size: 22px;
+}
+
+body.density-compact .pane-header {
+  min-height: 44px;
+  padding-bottom: 6px;
+}
+
+body.density-compact .pane-header h2 {
+  font-size: 17px;
 }
 
 body.density-compact .template-list,
 body.density-compact .exercise-library,
-body.density-compact .workout-history {
+body.density-compact .library-pinned {
   gap: 8px;
+}
+
+body.density-compact .live-workout {
+  gap: 10px;
+}
+
+/* .workout-history isn't a flex/gap container — .history-card's own
+   margin-bottom does the spacing, so that's what compact needs to shrink. */
+body.density-compact .history-card {
+  margin-bottom: 6px;
 }
 
 body.density-compact .template-card,
 body.density-compact .history-card {
-  padding: 10px 12px;
+  padding: 8px 10px;
+}
+
+body.density-compact .template-name,
+body.density-compact .history-name {
+  font-size: 14px;
+}
+
+body.density-compact .template-meta,
+body.density-compact .history-meta {
+  font-size: 12px;
 }
 
 body.density-compact .exercise-item {
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
-body.density-compact .live-workout {
-  gap: 12px;
+body.density-compact .exercise-section-title {
+  margin: 10px 0 2px;
+  font-size: 12px;
+}
+
+body.density-compact .exercise-section:first-child .exercise-section-title {
+  margin-top: 2px;
+}
+
+body.density-compact .exercise-section + .exercise-section {
+  margin-top: 8px;
+}
+
+body.density-compact .exercise-library .filter-tabs {
+  padding: 2px 0 8px;
+  gap: 6px;
+}
+
+body.density-compact .filter-tab {
+  padding: 4px 10px;
+  font-size: 13px;
 }
 
 body.density-compact .exercise-group {
-  padding: 10px;
+  padding: 8px;
 }
 
 body.density-compact .group-header {
   margin-bottom: 6px;
+  gap: 6px;
+}
+
+body.density-compact .group-header h3 {
+  font-size: 14px;
+}
+
+body.density-compact .group-notes-wrap {
+  margin-bottom: 6px;
 }
 
 body.density-compact .sets-row {
-  padding: 3px 0;
+  padding: 2px 0;
+  gap: 6px;
+}
+
+body.density-compact .sets-header-row {
+  padding-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 body.density-compact .sets-row input {
-  padding: 6px;
+  padding: 5px;
+  font-size: 15px;
+}
+
+body.density-compact .btn-toggle-complete,
+body.density-compact .btn-fill-down {
+  width: 26px;
+  height: 26px;
 }
 
 body.density-compact .detail-exercise {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  padding: 10px;
+}
+
+body.density-compact .detail-exercise-header {
+  margin-bottom: 4px;
+}
+
+body.density-compact .detail-set {
+  padding: 3px 0;
 }
