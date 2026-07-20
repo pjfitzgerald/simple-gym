@@ -385,6 +385,15 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
     return matchesGroup && matchesSearch && notAlreadyAdded
   })
 
+  // Grouped by category, same as the main Exercises tab: a category heading
+  // stays visible as long as it still has a match under the current
+  // search/filter, and drops out the moment its last match is filtered away.
+  const pickerPresent = [...new Set(filteredExercises.map(ex => ex.muscle_group))]
+  const pickerExtra = pickerPresent.filter(g => !categories.includes(g)).sort()
+  const pickerSections = [...categories, ...pickerExtra]
+    .map(category => ({ category, items: filteredExercises.filter(ex => ex.muscle_group === category) }))
+    .filter(section => section.items.length > 0)
+
   if (showUpdateTemplate) {
     return (
       <div className="live-workout workout-sheet">
@@ -542,15 +551,19 @@ export default function LiveWorkout({ session: initialSession, onEnd, onMinimise
             ))}
           </div>
           <div className="picker-list">
-            {filteredExercises.map(ex => (
-              <button
-                key={ex.id}
-                className="picker-item"
-                onClick={() => addExerciseToSession(ex)}
-              >
-                <span>{ex.name}</span>
-                <span className="exercise-group">{ex.muscle_group}</span>
-              </button>
+            {pickerSections.map(section => (
+              <div key={section.category} className="exercise-section">
+                <h3 className="exercise-section-title">{section.category}</h3>
+                {section.items.map(ex => (
+                  <button
+                    key={ex.id}
+                    className="picker-item"
+                    onClick={() => addExerciseToSession(ex)}
+                  >
+                    <span>{ex.name}</span>
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
         </div>
